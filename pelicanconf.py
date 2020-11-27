@@ -10,7 +10,7 @@ SITENAME = "ssato's blog"
 PATH = 'content'
 # OUTPUT_PATH = 'docs'
 
-THEME = 'themes/pelican-simplegrey'
+THEME = 'themes/bootstrap'
 
 TIMEZONE = 'Asia/Tokyo'
 
@@ -37,3 +37,9 @@ DEFAULT_PAGINATION = 10
 
 # Uncomment following line if you want document-relative URLs when developing
 # RELATIVE_URLS = True
+
+# custom
+DATE_FORMATS = {
+    'en': '%a, %d %b %Y',
+    'ja': '%Y-%m-%d(%a)',
+}
