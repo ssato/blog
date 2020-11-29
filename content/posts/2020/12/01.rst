@@ -7,7 +7,7 @@ Ansible Lint と YAML Lint の話 (イントロダクション)
 :category: ansible
 :slug: ansible-lint-yaml-lint-intro
 :authors: Satoru SATOH
-:summary: Ansible Lint と YAML Lint の話 (イントロ)
+:summary: Ansible Lint と YAML Lint の話 (イントロダクション)
 
 What's this?
 =============
@@ -21,8 +21,7 @@ What's this?
 Lint って何?
 ==============
 
-Lint って何でしょう? lint を英和辞書で引いてみると "糸くず" などがでてきてしまい、今話題にしているツールのことではないようです。
-ツールとしての Lint については Wikipedia に丁度、記事 https://ja.wikipedia.org/wiki/Lint があるようなので見てみましょう。
+Lint って何でしょう?  Wikipedia に丁度、lint の記事 https://ja.wikipedia.org/wiki/Lint があるようなので見てみましょう。
 
   lint とは、主にC言語のソースコードに対し、コンパイラよりも詳細かつ厳密なチェックを行うプログラムである。静的解析ツールとも呼ばれる。 
   (中略)
