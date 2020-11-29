@@ -1,0 +1,203 @@
+tox のすすめ
+##############
+
+:date: 2020-12-02 00:01
+:modified: 2020-12-02 00:01
+:tags: python
+:category: python
+:slug: recommend-to-use-tox
+:authors: Satoru SATOH
+:summary: tox のすすめ
+
+What's this?
+=============
+
+これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。
+
+- https://adventar.org/calendars/5719
+- https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
+
+Tox って何?
+=====================
+
+Tox は主に Python 開発の中でテストや開発環境を用意するのに使われる Python 製のツールです。
+Tox を使うと異なる Python バージョンやライブラリを組み合わせた環境を素早く作り、その環境内で
+開発中の Python コードのテストを実行するなどといったことが簡単にできます。
+
+- Home: https://tox.readthedocs.io
+- Project: https://github.com/tox-dev/tox
+- PyPI: https://pypi.org/project/tox/
+
+なぜ Tox が必要?
+======================
+
+virtualenv 等のツールによる閉じた python 仮想環境の作成、利用
+------------------------------------------------------------------
+
+Python で開発しているコードをテストするためにはそのコードが必要とする他のライブラリなどもあわせてインストールが必要になります。
+そのようなライブラリがごく小数か開発している OS
+環境に既にインストール済みであれば良いのですが、大抵の場合はどうにかして新たに追加インストールしなければならないことが多いです。
+
+この問題を解決するために Python では virtualenv などのツールが用意されています。
+
+virtualenv は指定した特定ディレクトリ下を閉じた環境として利用するようにできます。
+virtualenv などを使うことで、その閉じた環境の中に追加で必要なライブラリなどをインストールしたり、その中で開発コードを実行したりできます。
+
+ただ virtualenv などを使う場合もその閉じた環境での何らかの実行の度に次のように一連の準備作業などが必要となります。
+
+- 指定ディレクトリ下を初期化: 例. virtualenv <閉じた環境を作るディレクトリのパス>
+- 指定ディレクトリ内に移動
+- 指定ディレクトリ下の閉じた環境のライブラリやコマンドを使えるように有効化: 例. source bin/activate
+- ... (何かその環境内での一連のテスト実行などの操作) ...
+- 閉じた環境から出る: 例. deactivate
+
+例えば virtualenv を使って ansible 最新版をインストール、試してみるとしましょう。
+おそらく次のような手順となるはずです。
+
+::
+
+  [ssato@x1-carbon-gen6 ~]$ virtualenv /tmp/py38
+  Using base prefix '/usr'
+  New python executable in /tmp/py38/bin/python3
+  Also creating executable in /tmp/py38/bin/python
+  Installing setuptools, pip, wheel...
+  done.
+  [ssato@x1-carbon-gen6 py38]$ cd /tmp/py38
+  [ssato@x1-carbon-gen6 py38]$ source ./bin/activate
+  (py38) [ssato@x1-carbon-gen6 py38]$ pip install ansible
+    ... (snip)
+  Installing collected packages: pyparsing, packaging, MarkupSafe, jinja2, pycparser, cffi, six, cryptography, PyYAML, ansible-base, ansible
+  Successfully installed MarkupSafe-1.1.1 PyYAML-5.3.1 ansible-2.10.3 ... (snip) ...
+  (py38) [ssato@x1-carbon-gen6 py38]$ ansible -m ping localhost
+  localhost | SUCCESS => {
+      "ansible_facts": {
+          "discovered_interpreter_python": "/usr/bin/python3"
+      },
+      "changed": false,
+      "ping": "pong"
+  }
+  (py38) [ssato@x1-carbon-gen6 py38]$ deactivate
+  [ssato@x1-carbon-gen6 py38]$ cd -
+  ~
+  [ssato@x1-carbon-gen6 ~]$
+
+virtualenv 等で作成して利用する Python 仮想環境が一個だけであればまだ何とかなります。
+しかし、もし必要な環境が一つではないとしたらどうでしょう? 例えば Python 2 と 3 両方で動くコードの開発で両方テストするとしたら?
+virtualenv 等の Python 仮想環境の管理ツールは非常に便利ではあるのですが依然煩雑さは解決されず、残っているわです。
+
+tox による Python 仮想環境の管理
+------------------------------------
+
+tox を使うと先にふれたような virtualenv 等による一連の作業手順を意識することなく行うことができます。
+tox は virtualenv のラッパーとして働き、煩雑な部分を隠蔽し、よりずっと簡単にやりたいこと
+(Python 仮想環境の中でテストを実行したい、など) を実行してくれます。
+
+例えば、次のようにすれば先の例と同様に閉じた仮想環境内で ansible 最新版をインストール、試してみることができます。
+::
+
+  [ssato@x1-carbon-gen6 00]$ cat << EOF > tox.ini
+  > [tox]
+  > envlist = py36
+  > skipsdist = true
+  >
+  > [testenv]
+  > deps =
+  >   ansible
+  > commands =
+  >   ansible -m ping localhost
+  >
+  > EOF
+  [ssato@x1-carbon-gen6 00]$ tox
+  py36 create: /tmp/0/00/.tox/py36
+  py36 installdeps: ansible
+  py36 installed: ansible==2.10.3, ... (snip) ...
+  py36 run-test-pre: PYTHONHASHSEED='950942320'
+  py36 run-test: commands[0] | ansible -m ping localhost
+  localhost | SUCCESS => {
+      "ansible_facts": {
+          "discovered_interpreter_python": "/usr/bin/python3"
+      },
+      "changed": false,
+      "ping": "pong"
+  }
+  _______________________________ summary _____________________________
+    py36: commands succeeded
+    congratulations :)
+  [ssato@x1-carbon-gen6 00]$
+
+またこの例では実行時の最新の Ansible (2.10.3) をインストール、実行していますが、
+Ansible Playbook を実行している環境ではより古いバージョンを利用しているということもあるかもしれません。
+そこでより古い Ansible 2.9.x でも同じように実行してみることとしましょう。
+
+次のように tox の設定ファイルをすこしだけ変更して実行してみるとこれが可能となります。
+::
+
+  [ssato@x1-carbon-gen6 00]$ cat tox.ini
+  [tox]
+  envlist = py36
+  skipsdist = true
+
+  [testenv]
+  deps =
+    ansible
+  commands =
+    ansible -m ping localhost
+
+  [ssato@x1-carbon-gen6 00]$ sed -i.save 's/ansible$/& == 2.9/' tox.ini
+  [ssato@x1-carbon-gen6 00]$ diff -u tox.ini{.save,}
+  --- tox.ini.save        2020-11-30 02:09:42.614733037 +0900
+  +++ tox.ini     2020-11-30 02:20:28.380544560 +0900
+  @@ -4,7 +4,7 @@
+
+   [testenv]
+   deps =
+  -  ansible
+  +  ansible == 2.9
+   commands =
+     ansible -m ping localhost
+
+  [ssato@x1-carbon-gen6 00]$ rm -rf .tox/
+  [ssato@x1-carbon-gen6 00]$ tox
+  py36 create: /tmp/0/00/.tox/py36
+  py36 installdeps: ansible == 2.9
+  py36 installed: ansible==2.9.0, ... (snip) ...
+  py36 run-test-pre: PYTHONHASHSEED='2272734381'
+  py36 run-test: commands[0] | ansible -m ping localhost
+  localhost | SUCCESS => {
+      "ansible_facts": {
+          "discovered_interpreter_python": "/usr/bin/python3"
+      },
+      "changed": false,
+      "ping": "pong"
+  }
+  _______________________________ summary _____________________________
+    py36: commands succeeded
+    congratulations :)
+  [ssato@x1-carbon-gen6 00]$
+
+先の例と違って今度は ansible の少し古いバージョン 2.9.0 がインストール、使われているのがわかります。
+
+なぜ Ansible Playbook 開発で tox が必要?
+-------------------------------------------
+
+Ansible は大分成熟してはいますがまだ開発は活発に続いていて、Ansible Playbook のより良い書き方も
+Ansible のバージョンに応じてやがて変っていきます。
+Ansible のバージョンが上るとすぐに動いていた Playbook が動かなくなるということはあまりないですが、
+Ansible Playbook も IaC 化された『コード』である以上、他のプログラミング言語での開発と同様に現行やより古いバージョン、また将来のリリースに備え
+Ansible の複数のバージョンに対するテストがほぼ必須になってきます。
+
+また単純にある Ansible Collection や Module を Playbook の中で使うために追加で
+Python ライブラリをインストールしなければならないということもよくあります。
+
+以上をふまえると Ansible Playbook 開発においても次のようなことを簡単に実現するために tox を使うと良いわけです。
+
+- 閉じた python 仮想環境内でテスト
+- ansible や python の複数のバージョンの組み合わせに対してテスト
+
+次回予告
+===================
+
+次回は実際に Ansible Lint と yamllint をどう使っていくのか実例を示しながら簡単に紹介する予定です。
+
+.. vim:sw=2:ts=2:et:
