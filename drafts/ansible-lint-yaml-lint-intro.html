@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ssato's blog</title>
+	<meta name="description" content="">
+	<meta name="author" content="Satoru SATOH">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML elements -->
+	<!--[if lt IE 9]>
+		<script src="/theme/html5.js"></script>
+	<![endif]-->
+
+	<!-- Styles -->
+	<link href="/theme/bootstrap.min.css" rel="stylesheet">
+	<link href="/theme/local.css" rel="stylesheet">
+	<link href="/theme/pygments.css" rel="stylesheet">
+
+	<!-- Feeds -->
+
+
+
+
+</head>
+<body>
+	<div class="topbar">
+	  <div class="topbar-inner">
+		<div class="container-fluid">
+		  <a class="brand" href="/">ssato's blog</a>
+			<ul class="nav">
+			</ul>
+			<p class="pull-right"><a href="/archives.html">[archives]</a> <a href="/tags.html">[tags]</a></p>
+		</div>
+	  </div>
+	</div>
+
+	<div class="container-fluid">
+	  <div class="sidebar">
+		<div class="well">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://getpelican.com/">Pelican</a></li>
+				<li><a href="http://python.org/">Python.org</a></li>
+				<li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+			</ul>
+			<div class="social">
+			<h3>Social</h3>
+			<ul>
+				<li><a href="https://github.com/ssato/">Github</a></li>
+				<li><a href="https://www.instagram.com/satoh.satoru/">Instagram</a></li>
+				<li><a href="https://twitter.com/satoru_satoh">Twitter</a></li>
+			</ul>
+			</div>
+		</div>
+	  </div>
+	  <div class="content">
+	<div class='article'>
+		<div class="page-header"><h1>Ansible Lint と YAML Lint の話 (イントロダクション)</h1></div>
+		<div class="well small">Permalink: <a class="more" href="/drafts/ansible-lint-yaml-lint-intro.html">2020-12-01 00:01:00+09:00</a>
+by <a class="url fn" href="/author/satoru-satoh.html">Satoru SATOH </a>
+ in <a href="/category/ansible.html">ansible</a>
+tags: <a href="/tag/ansible.html">ansible</a> <a href="/tag/lint.html">lint</a> </div>
+		<div><div class="section" id="what-s-this">
+<h2>What's this?</h2>
+<p>これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://adventar.org/calendars/5719">https://adventar.org/calendars/5719</a></li>
+<li><a class="reference external" href="https://qiita.com/advent-calendar/2020/ansible_01">https://qiita.com/advent-calendar/2020/ansible_01</a> (Qiita のみ)</li>
+</ul>
+</div>
+<div class="section" id="lint">
+<h2>Lint って何?</h2>
+<p>Lint って何でしょう?  Wikipedia に丁度、lint の記事 <a class="reference external" href="https://ja.wikipedia.org/wiki/Lint">https://ja.wikipedia.org/wiki/Lint</a> があるようなので見てみましょう。</p>
+<blockquote>
+lint とは、主にC言語のソースコードに対し、コンパイラよりも詳細かつ厳密なチェックを行うプログラムである。静的解析ツールとも呼ばれる。
+(中略)
+コンパイラではチェックされないが、バグの原因になるような曖昧な記述についても警告される。
+構文（シンタックス）レベルのチェックだけでなく、意味（セマンティクス）レベルのチェックまで実行するものもある。</blockquote>
+<p>ソースコードの静的解析とはソースコードをコンパイル、実行することなく読込み、何らかの解析を行なってチェックすることです。
+Ansible と C 言語などプログラム言語のソースコード、どう関係するのだろう? と思われる方もいらっしゃるかもしれませんが、
+Ansible Playbook の YAML ファイルも IaC <a class="footnote-reference" href="#id2" id="id1">[1]</a> 化された『(ソース) コード』と見做すことができますし、
+プログラミング言語の場合と同様に静的解析して同じようなことができそうということは想像できるかと思います。</p>
+<p>実際に Ansible Playbook の YAML ファイルを静的解析、チェックするためにいくつか OSS のツールが開発されていてすぐに使うことができます。
+Ansible の Lint ツールとして有名な二つについて次の節では簡単に紹介しておきます。</p>
+<table class="docutils footnote" frame="void" id="id2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>IaC = Infrastructure As Code、詳しくは <a class="reference external" href="https://ja.wikipedia.org/wiki/Infrastructure_as_Code">https://ja.wikipedia.org/wiki/Infrastructure_as_Code</a> などをご参照下さい。</td></tr>
+</tbody>
+</table>
+<div class="section" id="ansible-lint">
+<h3>Ansible で使える Lint ツール</h3>
+<div class="section" id="id3">
+<h4>Ansible Lint</h4>
+<p>Ansible Lint は Ansible Playbook などを対象に静的解析を行ない、経験則などに基づいてより良い書き方がなされているかをチェックすることができます。
+標準でも最低限必要十分と思われるチェックが可能ですが拡張してチェック項目を増やすこともできます。</p>
+<ul class="simple">
+<li>プロジェクト: <a class="reference external" href="https://github.com/ansible/ansible-lint">https://github.com/ansible/ansible-lint</a></li>
+<li>ドキュメント: <a class="reference external" href="https://ansible-lint.readthedocs.io">https://ansible-lint.readthedocs.io</a></li>
+<li>コマンド行のツール: ansible-lint</li>
+<li>Ansible Playbook・Role を構成するいくつかの YAML ファイルなどを対象に静的解析を実行<ul>
+<li>静的解析でチェックする項目は Rule としてまとまっている</li>
+<li>Rule 毎に設定で有効化・無効化の指定が可能</li>
+<li>構文チェックより一歩踏み込んで Playbook や Task 定義などの書き方をチェック可能</li>
+<li>標準の Rule 集: <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/default_rules.html">https://ansible-lint.readthedocs.io/en/latest/default_rules.html</a></li>
+<li>カスタム Rule 実装 (Python コード) を用意すれば拡張できる: <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#creating-custom-rules">https://ansible-lint.readthedocs.io/en/latest/rules.html#creating-custom-rules</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="yamllint">
+<h4>yamllint</h4>
+<p>yamllint は YAML ファイルを対象に静的解析を行ない、経験則などに基づいてより正しく、良い書き方がなされているかをチェックすることができます。
+Ansible に特化したものではないですが Ansible Playbook や Role を構成する大部分のファイルは YAML ファイルなので活用できます。</p>
+<ul class="simple">
+<li>プロジェクト: <a class="reference external" href="https://github.com/adrienverge/yamllint">https://github.com/adrienverge/yamllint</a></li>
+<li>ドキュメント: <a class="reference external" href="https://yamllint.readthedocs.io">https://yamllint.readthedocs.io</a></li>
+<li>コマンド行のツール: yamllint</li>
+<li>YAML ファイルを対象に静的解析を実行<ul>
+<li>静的解析でチェックする項目は Rule としてまとまっている</li>
+<li>Rule 毎に設定で有効化・無効化や用意されていれば細かなオプション指定による調整が可能</li>
+<li>構文チェックはもちろん一歩踏み込んで経験則などに基づいて書き方をチェック可能</li>
+<li>標準の Rule 集: <a class="reference external" href="https://yamllint.readthedocs.io/en/latest/rules.html">https://yamllint.readthedocs.io/en/latest/rules.html</a></li>
+</ul>
+</li>
+</ul>
+<p>なお yamllint についてはカスタム Rule 実装 (Python コード) を用意してすぐ拡張できるような仕組みは
+upstream では用意されていませんが、筆者が開発作業中の branch を使えば plugin により拡張可能です。</p>
+<ul class="simple">
+<li>筆者が開発作業中の yamllint を pluing で拡張可能にできる branch: <a class="reference external" href="https://github.com/ssato/yamllint/tree/feature/plugin">https://github.com/ssato/yamllint/tree/feature/plugin</a></li>
+<li>upstream に対する Github PR: <a class="reference external" href="https://github.com/adrienverge/yamllint/pull/315">https://github.com/adrienverge/yamllint/pull/315</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="id4">
+<h2>なぜ Lint が必要?</h2>
+<p>Ansible Playbook でも Lint ツールがあって色々静的解析できそうということはわかりました。
+ではなぜこれらの Lint ツールが必要で、何が嬉しいのでしょうか?</p>
+<p>筆者は主に次のようなメリットがあると考え、積極的に Lint ツールの利用をすすめています。
+(利用はほぼ必須と考えています。)</p>
+<ul class="simple">
+<li>Ansible Playbook を実行せずに簡単に構文の間違い、ケアレスミスなどをみつけることができる</li>
+<li>Ansible Playbook を実行せずに簡単により良い Playbook の書き方を教えてもらえる</li>
+<li>Ansible Playbook を実行せずに簡単に Playbook を確認できて、人によらず一定品質を保つ手助けとできる</li>
+<li>CI ワークフローの中に簡単に組み込むことができる</li>
+</ul>
+<p>例えば Ansible Playbook の中で同じことを行う task であっても色々な書き方で定義することができます。
+これ自体は良いことではあるのですが Playbook を複数人で開発、利用していこうとすると非常に問題となります。</p>
+<p>例えば httpd を RPM パッケージでインストールする task 定義を書く場合でも色々考えられます <a class="footnote-reference" href="#id6" id="id5">[2]</a> 。</p>
+<ul>
+<li><p class="first">shell モジュールを利用 (1):</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">shell</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yum install -y httpd</span>
+</pre></div>
+</li>
+<li><p class="first">shell モジュールを利用 (2):</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ensure httpd package is installed</span>
+  <span class="nt">shell</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yum install -y httpd</span>
+</pre></div>
+</li>
+<li><p class="first">command モジュールを利用:</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ensure httpd package is installed</span>
+  <span class="nt">command</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">yum install -y httpd</span>
+</pre></div>
+</li>
+<li><p class="first">package モジュールを利用 (1):</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ensure httpd package is installed</span>
+  <span class="nt">package</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">name=httpd state=present</span>
+</pre></div>
+</li>
+<li><p class="first">package モジュールを利用 (2):</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ensure httpd package is installed</span>
+  <span class="nt">package</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">httpd</span>
+    <span class="nt">state</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">present</span>
+</pre></div>
+</li>
+<li><p class="first">package モジュールを利用 (3):</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ensure httpd package is installed</span>
+  <span class="nt">package</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">httpd</span>
+    <span class="nt">state</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">present</span>
+</pre></div>
+</li>
+<li><p class="first">yum モジュールを利用:</p>
+<div class="highlight"><pre><span></span><span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Ensure httpd package is installed</span>
+  <span class="nt">yum</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">httpd</span>
+    <span class="nt">state</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">present</span>
+</pre></div>
+</li>
+</ul>
+<p>人によって書き方がばらばらだと保守が大変になりますし、すべてのパターンについてきちんとテストする工数も増大します。
+Lint ツールによってより良い書き方となっているかをチェックし、ある程度標準化された書き方にそろえていくことで
+Playbook の品質を上げ、開発保守をより安全に進めることができるようになるわけです。</p>
+<table class="docutils footnote" frame="void" id="id6" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[2]</a></td><td>もし余裕があれば、この例の中でどの書き方が一番良いか、またそれはなぜかを考えてみて下さい。</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id7">
+<h2>次回予告</h2>
+<p>次回以降では実際に Ansible Lint と yamllint をどう使っていくのか実例を示しながら簡単に紹介する予定です。</p>
+<!-- vim:sw=2:ts=2:et: -->
+</div>
+</div>
+	</div>
+		<footer>
+		  <p>Powered by <a href="http://getpelican.com/">Pelican</a>. Theme based on <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a>.</p>
+		  <p>&copy; Satoru SATOH</p>
+		</footer>
+	  </div>
+
+	</div>
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ssato's blog</title>
+	<meta name="description" content="">
+	<meta name="author" content="Satoru SATOH">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML elements -->
+	<!--[if lt IE 9]>
+		<script src="/theme/html5.js"></script>
+	<![endif]-->
+
+	<!-- Styles -->
+	<link href="/theme/bootstrap.min.css" rel="stylesheet">
+	<link href="/theme/local.css" rel="stylesheet">
+	<link href="/theme/pygments.css" rel="stylesheet">
+
+	<!-- Feeds -->
+
+
+
+
+</head>
+<body>
+	<div class="topbar">
+	  <div class="topbar-inner">
+		<div class="container-fluid">
+		  <a class="brand" href="/">ssato's blog</a>
+			<ul class="nav">
+					<li ><a href="/category/ansible.html">ansible</a></li>
+					<li class="active"><a href="/category/python.html">python</a></li>
+			</ul>
+			<p class="pull-right"><a href="/archives.html">[archives]</a> <a href="/tags.html">[tags]</a></p>
+		</div>
+	  </div>
+	</div>
+
+	<div class="container-fluid">
+	  <div class="sidebar">
+		<div class="well">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://getpelican.com/">Pelican</a></li>
+				<li><a href="http://python.org/">Python.org</a></li>
+				<li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+			</ul>
+			<div class="social">
+			<h3>Social</h3>
+			<ul>
+				<li><a href="https://github.com/ssato/">Github</a></li>
+				<li><a href="https://www.instagram.com/satoh.satoru/">Instagram</a></li>
+				<li><a href="https://twitter.com/satoru_satoh">Twitter</a></li>
+			</ul>
+			</div>
+		</div>
+	  </div>
+	  <div class="content">
+	<div class='article'>
+		<div class="page-header"><h1>tox のすすめ</h1></div>
+		<div class="well small">Permalink: <a class="more" href="/recommend-to-use-tox.html">2020-12-02 00:01:00+09:00</a>
+by <a class="url fn" href="/author/satoru-satoh.html">Satoru SATOH </a>
+ in <a href="/category/python.html">python</a>
+tags: <a href="/tag/python.html">python</a> </div>
+		<div><div class="section" id="what-s-this">
+<h2>What's this?</h2>
+<p>これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://qiita.com/advent-calendar/2020/ansible_01">https://qiita.com/advent-calendar/2020/ansible_01</a> (Qiita のみ)</li>
+<li><a class="reference external" href="https://adventar.org/calendars/5719">https://adventar.org/calendars/5719</a></li>
+</ul>
+</div>
+<div class="section" id="id1">
+<h2>Tox って何?</h2>
+<p>Tox は主に Python 開発の中でテストや開発環境を用意するのに使われる Python 製のツールです。</p>
+<p>Tox を使うと、異なる Python バージョンやライブラリを組み合わせた環境を素早く作り、その環境内で
+開発中の Python コードのテストを実行するなどといったことが簡単にできるようになります。</p>
+<ul class="simple">
+<li>Home: <a class="reference external" href="https://tox.readthedocs.io">https://tox.readthedocs.io</a></li>
+<li>Project: <a class="reference external" href="https://github.com/tox-dev/tox">https://github.com/tox-dev/tox</a></li>
+<li>PyPI: <a class="reference external" href="https://pypi.org/project/tox/">https://pypi.org/project/tox/</a></li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h2>なぜ Tox が必要?</h2>
+<div class="section" id="python">
+<h3>閉じた python 仮想環境の作成、利用</h3>
+<p>Python で開発しているコードをテストするためには、そのコードが必要とする他のライブラリなども追加でインストールする必要がある場合があります。
+そのようなライブラリがごく小数か開発している OS
+環境に既にインストール済みであれば良いのですが、大抵の場合はどうにかして新たに追加インストールしなければならないことが多いです。</p>
+<p>この問題を解決するために Python では virtualenv などのツールが用意されています。</p>
+<p>virtualenv は指定した特定ディレクトリ下を閉じた環境として利用するようにできます。
+virtualenv などを使うことで、その閉じた環境の中に追加で必要なライブラリなどをインストールしたり、その中で開発コードを実行したりできます。</p>
+<p>ただ virtualenv などを使う場合もその閉じた環境での何らかの実行の度に次のように一連の準備作業などが必要となります。</p>
+<ul class="simple">
+<li>指定ディレクトリ下を初期化: 例. virtualenv &lt;閉じた環境を作るディレクトリのパス&gt;</li>
+<li>指定ディレクトリ内に移動</li>
+<li>指定ディレクトリ下の閉じた環境のライブラリやコマンドを使えるように有効化: 例. source bin/activate</li>
+<li>... (何かその環境内での一連のテスト実行などの操作) ...</li>
+<li>閉じた環境から出る: 例. deactivate</li>
+</ul>
+<p>例えば virtualenv を使って ansible 最新版をインストール、試してみるとしましょう。
+おそらく次のような手順となるはずです。</p>
+<pre class="literal-block">
+[ssato&#64;x1-carbon-gen6 ~]$ virtualenv /tmp/py38
+Using base prefix '/usr'
+New python executable in /tmp/py38/bin/python3
+Also creating executable in /tmp/py38/bin/python
+Installing setuptools, pip, wheel...
+done.
+[ssato&#64;x1-carbon-gen6 py38]$ cd /tmp/py38
+[ssato&#64;x1-carbon-gen6 py38]$ source ./bin/activate
+(py38) [ssato&#64;x1-carbon-gen6 py38]$ pip install ansible
+  ... (snip)
+Installing collected packages: pyparsing, packaging, MarkupSafe, jinja2, pycparser, cffi, six, cryptography, PyYAML, ansible-base, ansible
+Successfully installed MarkupSafe-1.1.1 PyYAML-5.3.1 ansible-2.10.3 ... (snip) ...
+(py38) [ssato&#64;x1-carbon-gen6 py38]$ ansible -m ping localhost
+localhost | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python3&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+(py38) [ssato&#64;x1-carbon-gen6 py38]$ deactivate
+[ssato&#64;x1-carbon-gen6 py38]$ cd -
+~
+[ssato&#64;x1-carbon-gen6 ~]$
+</pre>
+<p>virtualenv 等で作成して利用する Python 仮想環境が一個だけであればまだ何とかなります。
+しかし、もし必要な環境が一つではないとしたらどうでしょう? 例えば Python 2 と 3 両方で動くコードの開発で両方テストするとしたら?
+virtualenv 等の Python 仮想環境の管理ツールは非常に便利ではあるのですが依然煩雑さは解決されず、残っているわです。</p>
+</div>
+<div class="section" id="tox-python">
+<h3>tox による Python 仮想環境の管理</h3>
+<p>tox を使うと先にふれたような virtualenv 等による一連の作業手順を意識することなく行うことができます。
+tox は virtualenv のラッパーとして働き、煩雑な部分を隠蔽し、よりずっと簡単にやりたいこと
+(Python 仮想環境の中でテストを実行したい、など) を実行してくれます。</p>
+<p>例えば、次のようにすれば先の例と同様に閉じた仮想環境内で ansible 最新版をインストール、試してみることができます。</p>
+<pre class="literal-block">
+[ssato&#64;x1-carbon-gen6 00]$ cat &lt;&lt; EOF &gt; tox.ini
+&gt; [tox]
+&gt; envlist = py36
+&gt; skipsdist = true
+&gt;
+&gt; [testenv]
+&gt; deps =
+&gt;   ansible
+&gt; commands =
+&gt;   ansible -m ping localhost
+&gt;
+&gt; EOF
+[ssato&#64;x1-carbon-gen6 00]$ tox
+py36 create: /tmp/0/00/.tox/py36
+py36 installdeps: ansible
+py36 installed: ansible==2.10.3, ... (snip) ...
+py36 run-test-pre: PYTHONHASHSEED='950942320'
+py36 run-test: commands[0] | ansible -m ping localhost
+localhost | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python3&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+_______________________________ summary _____________________________
+  py36: commands succeeded
+  congratulations :)
+[ssato&#64;x1-carbon-gen6 00]$
+</pre>
+<p>またこの例では実行時の最新の Ansible (2.10.3) をインストール、実行していますが、
+Ansible Playbook を実行している環境ではより古いバージョンを利用しているということもあるかもしれません。
+そこでより古い Ansible 2.9.x でも同じように実行してみることとしましょう。</p>
+<p>次のように tox の設定ファイルをすこしだけ変更して実行してみるとこれが可能となります。</p>
+<pre class="literal-block">
+[ssato&#64;x1-carbon-gen6 00]$ cat tox.ini
+[tox]
+envlist = py36
+skipsdist = true
+
+[testenv]
+deps =
+  ansible
+commands =
+  ansible -m ping localhost
+
+[ssato&#64;x1-carbon-gen6 00]$ sed -i.save 's/ansible$/&amp; == 2.9/' tox.ini
+[ssato&#64;x1-carbon-gen6 00]$ diff -u tox.ini{.save,}
+--- tox.ini.save        2020-11-30 02:09:42.614733037 +0900
++++ tox.ini     2020-11-30 02:20:28.380544560 +0900
+&#64;&#64; -4,7 +4,7 &#64;&#64;
+
+ [testenv]
+ deps =
+-  ansible
++  ansible == 2.9
+ commands =
+   ansible -m ping localhost
+
+[ssato&#64;x1-carbon-gen6 00]$ rm -rf .tox/
+[ssato&#64;x1-carbon-gen6 00]$ tox
+py36 create: /tmp/0/00/.tox/py36
+py36 installdeps: ansible == 2.9
+py36 installed: ansible==2.9.0, ... (snip) ...
+py36 run-test-pre: PYTHONHASHSEED='2272734381'
+py36 run-test: commands[0] | ansible -m ping localhost
+localhost | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python3&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+_______________________________ summary _____________________________
+  py36: commands succeeded
+  congratulations :)
+[ssato&#64;x1-carbon-gen6 00]$
+</pre>
+<p>先の例と違って今度は ansible の少し古いバージョン 2.9.0 がインストール、使われているのがわかります。</p>
+</div>
+<div class="section" id="ansible-playbook-tox">
+<h3>なぜ Ansible Playbook 開発で tox が必要?</h3>
+<p>Ansible はもう大分成熟してはいますがまだ開発は活発に続いています。
+Ansible Playbook のより良い書き方や構文なども Ansible のバージョンに応じて少し変る場合もあります。</p>
+<p>Ansible のバージョンが上るとすぐに動いていた Playbook が動かなくなるということはあまりないです。
+しかし Ansible Playbook も IaC 化された『コード』である以上、他のプログラミング言語での開発と同様に現行やより古いバージョン、また将来のリリースに備え
+Ansible の複数のバージョンに対するテストがほぼ必須になってきます。</p>
+<p>また単純にある Ansible Collection や Module を Playbook の中で使うために追加で
+Python ライブラリをインストールしなければならないということもよくあります。</p>
+<p>以上をふまえると Ansible Playbook 開発においても次のようなことを簡単に実現するために tox を使うと良いわけです。</p>
+<ul class="simple">
+<li>閉じた python 仮想環境内でテスト: 開発環境の OS にライブラリ等を追加インストールしなくてよlい、など</li>
+<li>ansible や python の複数のバージョンの組み合わせに対してテスト: 個々の環境を細かく virtualenv で管理しなくてよい、など</li>
+</ul>
+<p>実際に、先の例の tox.ini を拡張して ansible 最新版と ansible 2.9.x の両方で実行してみましょう。</p>
+<pre class="literal-block">
+ssato&#64;x1-carbon-gen6% rm -rf .tox
+ssato&#64;x1-carbon-gen6% cat requirements.txt
+ansible
+ssato&#64;x1-carbon-gen6% diff -u tox.ini{.save,}
+--- tox.ini.save        2020-11-30 02:09:42.614733037 +0900
++++ tox.ini     2020-11-30 13:17:16.294919336 +0900
+&#64;&#64; -1,10 +1,14 &#64;&#64;
+ [tox]
+-envlist = py36
++envlist = py36{,-ansible29}
+ skipsdist = true
+
+ [testenv]
+ deps =
+-  ansible
++    -r {toxinidir}/requirements.txt
+ commands =
+-  ansible -m ping localhost
++    ansible --version
++    ansible -m ping localhost
+
++[testenv:py36-ansible29]
++deps =
++  ansible == 2.9
+ssato&#64;x1-carbon-gen6% cat tox.ini
+[tox]
+envlist = py36{,-ansible29}
+skipsdist = true
+
+[testenv]
+deps =
+    -r {toxinidir}/requirements.txt
+commands =
+    ansible --version
+    ansible -m ping localhost
+
+[testenv:py36-ansible29]
+deps =
+  ansible == 2.9
+ssato&#64;x1-carbon-gen6% tox
+py36 create: /tmp/0/00/.tox/py36
+py36 installdeps: -r/tmp/0/00/requirements.txt
+py36 installed: ansible==2.10.3,ansible-base==2.10.3, ... (snip) ...
+py36 run-test-pre: PYTHONHASHSEED='2963978821'
+py36 run-test: commands[0] | ansible --version
+ansible 2.10.3
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = ['/home/ssato/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /tmp/0/00/.tox/py36/lib/python3.6/site-packages/ansible
+  executable location = /tmp/0/00/.tox/py36/bin/ansible
+  python version = 3.6.12 (default, Aug 19 2020, 00:00:00) [GCC 10.2.1 20200723 (Red Hat 10.2.1-1)]
+py36 run-test: commands[1] | ansible -m ping localhost
+localhost | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python3&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+py36-ansible29 create: /tmp/0/00/.tox/py36-ansible29
+py36-ansible29 installdeps: ansible == 2.9
+py36-ansible29 installed: ansible==2.9.0, ... (snip) ...
+py36-ansible29 run-test-pre: PYTHONHASHSEED='2963978821'
+py36-ansible29 run-test: commands[0] | ansible --version
+ansible 2.9.0
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = ['/home/ssato/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /tmp/0/00/.tox/py36-ansible29/lib/python3.6/site-packages/ansible
+  executable location = /tmp/0/00/.tox/py36-ansible29/bin/ansible
+  python version = 3.6.12 (default, Aug 19 2020, 00:00:00) [GCC 10.2.1 20200723 (Red Hat 10.2.1-1)]
+py36-ansible29 run-test: commands[1] | ansible -m ping localhost
+localhost | SUCCESS =&gt; {
+    &quot;ansible_facts&quot;: {
+        &quot;discovered_interpreter_python&quot;: &quot;/usr/bin/python3&quot;
+    },
+    &quot;changed&quot;: false,
+    &quot;ping&quot;: &quot;pong&quot;
+}
+______________________________________________ summary ________________________________________
+  py36: commands succeeded
+  py36-ansible29: commands succeeded
+  congratulations :)
+ssato&#64;x1-carbon-gen6%
+</pre>
+</div>
+<div class="section" id="tox-ci">
+<h3>Tox + CI サービス</h3>
+<p>最近では GitLab 組込の CI サービス (GitLab CI) や GitHub と組み合わせて使える Travis-CI や
+GitHub Actions などの CI サービスを使うことも増えてきました。</p>
+<p>これらの CI サービスではそれぞれ何らかの独自の書式の設定ファイルを用意することが多いようです。
+一つ一つ書式を理解してテスト手順をサービス毎に設定を用意するのは非常に面倒な作業となります。
+またこの面倒さ故に CI サービスにロックインされてしまう可能性も高まります。</p>
+<p>そこで tox を使ってテスト手順を隠蔽し CI サービス側の設定は tox 呼出しだけにしてしまいましょう。
+tox を使って設定をシンプルにできるだけではなく、さらに幸運なことに、いくつかのサービスでは
+tox のそのサービス対応の plugin が利用できる場合もあり、pluing を使うことで色々便利になったりします。</p>
+<p>ここでは Ansilbe Role を CI サービスを使って CI (lint, unit + integration tests) する例をあげておきます。</p>
+<ul class="simple">
+<li>GitHub Actions で CI:<ul>
+<li>専用の plugin、 tox-gh-actions (<a class="reference external" href="https://github.com/ymyzk/tox-gh-actions">https://github.com/ymyzk/tox-gh-actions</a>) を利用</li>
+<li>GitHub Actions 設定: <a class="reference external" href="https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.github/workflows/tests.yml">https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.github/workflows/tests.yml</a></li>
+<li>GitHub Actions による CI 結果例: <a class="reference external" href="https://github.com/ssato/ansible-role-simple-httpd-example/actions/runs/365589895">https://github.com/ssato/ansible-role-simple-httpd-example/actions/runs/365589895</a></li>
+</ul>
+</li>
+<li>Travis-CI で CI:<ul>
+<li>専用の plugin、 tox-travis (<a class="reference external" href="https://github.com/tox-dev/tox-travis">https://github.com/tox-dev/tox-travis</a>) を利用</li>
+<li>Travis-CI 設定: <a class="reference external" href="https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.travis.yml">https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.travis.yml</a></li>
+<li>Travis-CI による CI 結果例: <a class="reference external" href="https://travis-ci.org/github/ssato/ansible-role-simple-httpd-example/builds/743889203">https://travis-ci.org/github/ssato/ansible-role-simple-httpd-example/builds/743889203</a></li>
+</ul>
+</li>
+</ul>
+<p>いずれの場合も CI で実行する処理内容 (lint, unit + integration tests など) については tox の設定で行っている <a class="footnote-reference" href="#id4" id="id3">[1]</a> ため、
+CI サービスによって処理内容は変らず、全く同じ内容と手順で実行されます。</p>
+<ul class="simple">
+<li>tox.ini: <a class="reference external" href="https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini">https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini</a></li>
+</ul>
+<table class="docutils footnote" frame="void" id="id4" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[1]</a></td><td>正確には lint, unit tests など一連の処理の大部分は molecule を使って行っているため tox.ini では molecule を呼出しているだけとなります。</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="id5">
+<h2>Tox を使ってみよう</h2>
+<div class="section" id="id6">
+<h3>Tox のインストール</h3>
+<p>tox は Python 開発では有名でほぼ必須となるツールなので、各種 OS や
+Linux ディストリビューションでは最初からパッケージが用意されているか、オプションのリポジトリなどを利用、また
+OS 標準形式のパッケージがない場合も pip install tox とすれば簡単に追加インストールできるはずです。</p>
+<p>例えば RHEL 8 または CentOS 8 をご利用の場合は EPEL リポジトリを有効化 <a class="footnote-reference" href="#id8" id="id7">[2]</a> した上で、Fedora
+をご利用の場合はそのまま、いずれの場合も次のコマンドを実行すればインストールできるでしょう。</p>
+<pre class="literal-block">
+$ sudo dnf install -y python3-tox
+</pre>
+<table class="docutils footnote" frame="void" id="id8" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id7">[2]</a></td><td>RHEL 8 等で EPEL リポジトリを利用する方法については <a class="reference external" href="https://fedoraproject.org/wiki/EPEL#Quickstart">https://fedoraproject.org/wiki/EPEL#Quickstart</a> などをご参照下さい。</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id9">
+<h3>Tox をさわってみる</h3>
+<p>tox の実行には設定ファイルが必ず必要となります。次のような内容の tox.ini というファイルを tox を実行する場所に用意します。</p>
+<pre class="literal-block">
+[tox]
+envlist = py36
+skipsdist = true
+
+[testenv]
+deps =
+  ansible
+commands =
+  ansible --version
+</pre>
+<p>簡単に各々の設定項目についてふれると、</p>
+<ul class="simple">
+<li>tox セクション:<ul>
+<li>envlist: 何かを実行する (Python) 環境のリストをカンマ (,) でつなげて列挙します。pyNM (py36 = python 3.6 の環境) といった指定をします。どういった値を指定できるかは <a class="reference external" href="https://tox.readthedocs.io/en/latest/config.html#tox-environments">https://tox.readthedocs.io/en/latest/config.html#tox-environments</a> などもあわせてご参照下さい。</li>
+<li>skipsdist: 元々 tox は python の setuptools によるパッケージの開発に使うものなので setup.py などそれ用のファイルがないと実行できませんが、この指定はそれをなしでも tox を使えるようにするおまじないです。</li>
+</ul>
+</li>
+<li>testenv セクション:<ul>
+<li>deps: 依存関係から追加インストールが必要となる Python パッケージのリストを列挙します。pip install 以降に指定できる文字列を記述できます。必要なものすべてを列挙しても良いのですが、おすすめは先程の例にあげた requirements.txt という別ファイルを用意してそちらに列挙、こちらの tox の設定では requirements.txt を参照する( -r {toxinidir}/requirements.txt と指定) ようにする方法です。</li>
+<li>commands: 各環境で実行するコマンドを列挙します。</li>
+</ul>
+</li>
+</ul>
+<p>試しに先の内容の tox.ini を用意して tox を実行すると次のようになります。</p>
+<pre class="literal-block">
+ssato&#64;x1-carbon-gen6% cat tox.ini
+[tox]
+envlist = py36
+skipsdist = true
+
+[testenv]
+deps =
+    ansible
+commands =
+    ansible --version
+ssato&#64;x1-carbon-gen6% tox
+py36 create: /tmp/0/01/.tox/py36
+py36 installdeps: ansible
+py36 installed: ansible==2.10.3,ansible-base==2.10.3,cffi==1.14.4, ... (snip) ...
+py36 run-test-pre: PYTHONHASHSEED='2209576110'
+py36 run-test: commands[0] | ansible --version
+ansible 2.10.3
+  config file = /etc/ansible/ansible.cfg
+  configured module search path = ['/home/ssato/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+  ansible python module location = /tmp/0/01/.tox/py36/lib/python3.6/site-packages/ansible
+  executable location = /tmp/0/01/.tox/py36/bin/ansible
+  python version = 3.6.12 (default, Aug 19 2020, 00:00:00) [GCC 10.2.1 20200723 (Red Hat 10.2.1-1)]
+______________________________________________ summary ___________________________________
+  py36: commands succeeded
+  congratulations :)
+ssato&#64;x1-carbon-gen6%
+</pre>
+<p>ここでは簡単な説明と例、さらに tox.ini のいくつかのより実践的な例を示すにとどめておきます。</p>
+<ul class="simple">
+<li>ansible role のテストを tox で: <a class="reference external" href="https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini">https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini</a></li>
+<li>ansible-lint のカスタム Rule のテストを tox で: <a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/blob/master/tox.ini">https://github.com/ssato/ansible-lint-custom-rules/blob/master/tox.ini</a></li>
+<li>yamllint のテストを tox で: <a class="reference external" href="https://github.com/ssato/yamllint/blob/feature/simplify-travis-ci-configuration/tox.ini">https://github.com/ssato/yamllint/blob/feature/simplify-travis-ci-configuration/tox.ini</a></li>
+</ul>
+<p>さらに詳しく使い方を知りたい方は冒頭でふれた tox の公式ホームからたどれる文書などもあわせてご参照下さい。</p>
+</div>
+</div>
+<div class="section" id="id10">
+<h2>次回予告</h2>
+<p>次回は Ansible Lint と yamllint をどう使っていくのか実例を示しながら簡単に紹介する予定です。</p>
+<!-- vim:sw=2:ts=2:et: -->
+</div>
+</div>
+	</div>
+		<footer>
+		  <p>Powered by <a href="http://getpelican.com/">Pelican</a>. Theme based on <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a>.</p>
+		  <p>&copy; Satoru SATOH</p>
+		</footer>
+	  </div>
+
+	</div>
+</body>
+</html>
