@@ -43,3 +43,8 @@ DATE_FORMATS = {
     'en': '%a, %d %b %Y',
     'ja': '%Y-%m-%d(%a)',
 }
+
+# .. seealso:: https://docs.getpelican.com/en/3.6.3/content.html#publishing-drafts
+DEFAULT_METADATA = {
+    'status': 'draft',
+}
