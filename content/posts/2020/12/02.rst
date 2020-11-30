@@ -15,27 +15,28 @@ What's this?
 これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
 他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。
 
-- https://adventar.org/calendars/5719
 - https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
+- https://adventar.org/calendars/5719
 
 Tox って何?
-=====================
+============
 
 Tox は主に Python 開発の中でテストや開発環境を用意するのに使われる Python 製のツールです。
-Tox を使うと異なる Python バージョンやライブラリを組み合わせた環境を素早く作り、その環境内で
-開発中の Python コードのテストを実行するなどといったことが簡単にできます。
+
+Tox を使うと、異なる Python バージョンやライブラリを組み合わせた環境を素早く作り、その環境内で
+開発中の Python コードのテストを実行するなどといったことが簡単にできるようになります。
 
 - Home: https://tox.readthedocs.io
 - Project: https://github.com/tox-dev/tox
 - PyPI: https://pypi.org/project/tox/
 
 なぜ Tox が必要?
-======================
+=================
 
-virtualenv 等のツールによる閉じた python 仮想環境の作成、利用
-------------------------------------------------------------------
+閉じた python 仮想環境の作成、利用
+------------------------------------
 
-Python で開発しているコードをテストするためにはそのコードが必要とする他のライブラリなどもあわせてインストールが必要になります。
+Python で開発しているコードをテストするためには、そのコードが必要とする他のライブラリなども追加でインストールする必要がある場合があります。
 そのようなライブラリがごく小数か開発している OS
 環境に既にインストール済みであれば良いのですが、大抵の場合はどうにかして新たに追加インストールしなければならないことが多いです。
 
@@ -181,10 +182,11 @@ Ansible Playbook を実行している環境ではより古いバージョンを
 なぜ Ansible Playbook 開発で tox が必要?
 -------------------------------------------
 
-Ansible は大分成熟してはいますがまだ開発は活発に続いていて、Ansible Playbook のより良い書き方も
-Ansible のバージョンに応じてやがて変っていきます。
-Ansible のバージョンが上るとすぐに動いていた Playbook が動かなくなるということはあまりないですが、
-Ansible Playbook も IaC 化された『コード』である以上、他のプログラミング言語での開発と同様に現行やより古いバージョン、また将来のリリースに備え
+Ansible はもう大分成熟してはいますがまだ開発は活発に続いています。
+Ansible Playbook のより良い書き方や構文なども Ansible のバージョンに応じて少し変る場合もあります。
+
+Ansible のバージョンが上るとすぐに動いていた Playbook が動かなくなるということはあまりないです。
+しかし Ansible Playbook も IaC 化された『コード』である以上、他のプログラミング言語での開発と同様に現行やより古いバージョン、また将来のリリースに備え
 Ansible の複数のバージョンに対するテストがほぼ必須になってきます。
 
 また単純にある Ansible Collection や Module を Playbook の中で使うために追加で
@@ -192,12 +194,218 @@ Python ライブラリをインストールしなければならないという�
 
 以上をふまえると Ansible Playbook 開発においても次のようなことを簡単に実現するために tox を使うと良いわけです。
 
-- 閉じた python 仮想環境内でテスト
-- ansible や python の複数のバージョンの組み合わせに対してテスト
+- 閉じた python 仮想環境内でテスト: 開発環境の OS にライブラリ等を追加インストールしなくてよlい、など
+- ansible や python の複数のバージョンの組み合わせに対してテスト: 個々の環境を細かく virtualenv で管理しなくてよい、など
+
+実際に、先の例の tox.ini を拡張して ansible 最新版と ansible 2.9.x の両方で実行してみましょう。
+::
+
+  ssato@x1-carbon-gen6% rm -rf .tox
+  ssato@x1-carbon-gen6% cat requirements.txt
+  ansible
+  ssato@x1-carbon-gen6% diff -u tox.ini{.save,}
+  --- tox.ini.save        2020-11-30 02:09:42.614733037 +0900
+  +++ tox.ini     2020-11-30 13:17:16.294919336 +0900
+  @@ -1,10 +1,14 @@
+   [tox]
+  -envlist = py36
+  +envlist = py36{,-ansible29}
+   skipsdist = true
+
+   [testenv]
+   deps =
+  -  ansible
+  +    -r {toxinidir}/requirements.txt
+   commands =
+  -  ansible -m ping localhost
+  +    ansible --version
+  +    ansible -m ping localhost
+
+  +[testenv:py36-ansible29]
+  +deps =
+  +  ansible == 2.9
+  ssato@x1-carbon-gen6% cat tox.ini
+  [tox]
+  envlist = py36{,-ansible29}
+  skipsdist = true
+
+  [testenv]
+  deps =
+      -r {toxinidir}/requirements.txt
+  commands =
+      ansible --version
+      ansible -m ping localhost
+
+  [testenv:py36-ansible29]
+  deps =
+    ansible == 2.9
+  ssato@x1-carbon-gen6% tox
+  py36 create: /tmp/0/00/.tox/py36
+  py36 installdeps: -r/tmp/0/00/requirements.txt
+  py36 installed: ansible==2.10.3,ansible-base==2.10.3, ... (snip) ...
+  py36 run-test-pre: PYTHONHASHSEED='2963978821'
+  py36 run-test: commands[0] | ansible --version
+  ansible 2.10.3
+    config file = /etc/ansible/ansible.cfg
+    configured module search path = ['/home/ssato/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+    ansible python module location = /tmp/0/00/.tox/py36/lib/python3.6/site-packages/ansible
+    executable location = /tmp/0/00/.tox/py36/bin/ansible
+    python version = 3.6.12 (default, Aug 19 2020, 00:00:00) [GCC 10.2.1 20200723 (Red Hat 10.2.1-1)]
+  py36 run-test: commands[1] | ansible -m ping localhost
+  localhost | SUCCESS => {
+      "ansible_facts": {
+          "discovered_interpreter_python": "/usr/bin/python3"
+      },
+      "changed": false,
+      "ping": "pong"
+  }
+  py36-ansible29 create: /tmp/0/00/.tox/py36-ansible29
+  py36-ansible29 installdeps: ansible == 2.9
+  py36-ansible29 installed: ansible==2.9.0, ... (snip) ...
+  py36-ansible29 run-test-pre: PYTHONHASHSEED='2963978821'
+  py36-ansible29 run-test: commands[0] | ansible --version
+  ansible 2.9.0
+    config file = /etc/ansible/ansible.cfg
+    configured module search path = ['/home/ssato/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+    ansible python module location = /tmp/0/00/.tox/py36-ansible29/lib/python3.6/site-packages/ansible
+    executable location = /tmp/0/00/.tox/py36-ansible29/bin/ansible
+    python version = 3.6.12 (default, Aug 19 2020, 00:00:00) [GCC 10.2.1 20200723 (Red Hat 10.2.1-1)]
+  py36-ansible29 run-test: commands[1] | ansible -m ping localhost
+  localhost | SUCCESS => {
+      "ansible_facts": {
+          "discovered_interpreter_python": "/usr/bin/python3"
+      },
+      "changed": false,
+      "ping": "pong"
+  }
+  ______________________________________________ summary ________________________________________
+    py36: commands succeeded
+    py36-ansible29: commands succeeded
+    congratulations :)
+  ssato@x1-carbon-gen6%
+
+Tox + CI サービス
+-------------------
+
+最近では GitLab 組込の CI サービス (GitLab CI) や GitHub と組み合わせて使える Travis-CI や
+GitHub Actions などの CI サービスを使うことも増えてきました。
+
+これらの CI サービスではそれぞれ何らかの独自の書式の設定ファイルを用意することが多いようです。
+一つ一つ書式を理解してテスト手順をサービス毎に設定を用意するのは非常に面倒な作業となります。
+またこの面倒さ故に CI サービスにロックインされてしまう可能性も高まります。
+
+そこで tox を使ってテスト手順を隠蔽し CI サービス側の設定は tox 呼出しだけにしてしまいましょう。
+tox を使って設定をシンプルにできるだけではなく、さらに幸運なことに、いくつかのサービスでは
+tox のそのサービス対応の plugin が利用できる場合もあり、pluing を使うことで色々便利になったりします。
+
+ここでは Ansilbe Role を CI サービスを使って CI (lint, unit + integration tests) する例をあげておきます。
+
+- GitHub Actions で CI:
+
+  - 専用の plugin、 tox-gh-actions (https://github.com/ymyzk/tox-gh-actions) を利用
+  - GitHub Actions 設定: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.github/workflows/tests.yml
+  - GitHub Actions による CI 結果例: https://github.com/ssato/ansible-role-simple-httpd-example/actions/runs/365589895
+
+- Travis-CI で CI:
+
+  - 専用の plugin、 tox-travis (https://github.com/tox-dev/tox-travis) を利用
+  - Travis-CI 設定: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.travis.yml
+  - Travis-CI による CI 結果例: https://travis-ci.org/github/ssato/ansible-role-simple-httpd-example/builds/743889203
+
+いずれの場合も CI で実行する処理内容 (lint, unit + integration tests など) については tox の設定で行っている [#]_ ため、
+CI サービスによって処理内容は変らず、全く同じ内容と手順で実行されます。
+
+- tox.ini: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini
+
+.. [#] 正確には lint, unit tests など一連の処理の大部分は molecule を使って行っているため tox.ini では molecule を呼出しているだけとなります。
+
+Tox を使ってみよう
+=====================
+
+Tox のインストール
+---------------------
+
+tox は Python 開発では有名でほぼ必須となるツールなので、各種 OS や
+Linux ディストリビューションでは最初からパッケージが用意されているか、オプションのリポジトリなどを利用、また
+OS 標準形式のパッケージがない場合も pip install tox とすれば簡単に追加インストールできるはずです。
+
+例えば RHEL 8 または CentOS 8 をご利用の場合は EPEL リポジトリを有効化 [#]_ した上で、Fedora
+をご利用の場合はそのまま、いずれの場合も次のコマンドを実行すればインストールできるでしょう。
+::
+
+  $ sudo dnf install -y python3-tox
+
+.. [#] RHEL 8 等で EPEL リポジトリを利用する方法については https://fedoraproject.org/wiki/EPEL#Quickstart などをご参照下さい。
+
+Tox をさわってみる
+---------------------
+
+tox の実行には設定ファイルが必ず必要となります。次のような内容の tox.ini というファイルを tox を実行する場所に用意します。
+::
+
+  [tox]
+  envlist = py36
+  skipsdist = true
+
+  [testenv]
+  deps =
+    ansible
+  commands =
+    ansible --version
+
+簡単に各々の設定項目についてふれると、
+
+- tox セクション:
+
+  - envlist: 何かを実行する (Python) 環境のリストをカンマ (,) でつなげて列挙します。pyNM (py36 = python 3.6 の環境) といった指定をします。どういった値を指定できるかは https://tox.readthedocs.io/en/latest/config.html#tox-environments などもあわせてご参照下さい。
+  - skipsdist: 元々 tox は python の setuptools によるパッケージの開発に使うものなので setup.py などそれ用のファイルがないと実行できませんが、この指定はそれをなしでも tox を使えるようにするおまじないです。
+
+- testenv セクション:
+
+  - deps: 依存関係から追加インストールが必要となる Python パッケージのリストを列挙します。pip install 以降に指定できる文字列を記述できます。必要なものすべてを列挙しても良いのですが、おすすめは先程の例にあげた requirements.txt という別ファイルを用意してそちらに列挙、こちらの tox の設定では requirements.txt を参照する( -r {toxinidir}/requirements.txt と指定) ようにする方法です。
+  - commands: 各環境で実行するコマンドを列挙します。
+
+試しに先の内容の tox.ini を用意して tox を実行すると次のようになります。
+::
+
+  ssato@x1-carbon-gen6% cat tox.ini
+  [tox]
+  envlist = py36
+  skipsdist = true
+
+  [testenv]
+  deps =
+      ansible
+  commands =
+      ansible --version
+  ssato@x1-carbon-gen6% tox
+  py36 create: /tmp/0/01/.tox/py36
+  py36 installdeps: ansible
+  py36 installed: ansible==2.10.3,ansible-base==2.10.3,cffi==1.14.4, ... (snip) ...
+  py36 run-test-pre: PYTHONHASHSEED='2209576110'
+  py36 run-test: commands[0] | ansible --version
+  ansible 2.10.3
+    config file = /etc/ansible/ansible.cfg
+    configured module search path = ['/home/ssato/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
+    ansible python module location = /tmp/0/01/.tox/py36/lib/python3.6/site-packages/ansible
+    executable location = /tmp/0/01/.tox/py36/bin/ansible
+    python version = 3.6.12 (default, Aug 19 2020, 00:00:00) [GCC 10.2.1 20200723 (Red Hat 10.2.1-1)]
+  ______________________________________________ summary ___________________________________
+    py36: commands succeeded
+    congratulations :)
+  ssato@x1-carbon-gen6%
+
+ここでは簡単な説明と例、さらに tox.ini のいくつかのより実践的な例を示すにとどめておきます。
+
+- ansible role のテストを tox で: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini
+- ansible-lint のカスタム Rule のテストを tox で: https://github.com/ssato/ansible-lint-custom-rules/blob/master/tox.ini
+- yamllint のテストを tox で: https://github.com/ssato/yamllint/blob/feature/simplify-travis-ci-configuration/tox.ini
+
+さらに詳しく使い方を知りたい方は冒頭でふれた tox の公式ホームからたどれる文書などもあわせてご参照下さい。
 
 次回予告
 ===================
 
-次回は実際に Ansible Lint と yamllint をどう使っていくのか実例を示しながら簡単に紹介する予定です。
+次回は Ansible Lint と yamllint をどう使っていくのか実例を示しながら簡単に紹介する予定です。
 
 .. vim:sw=2:ts=2:et:
