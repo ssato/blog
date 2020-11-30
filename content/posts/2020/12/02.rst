@@ -56,21 +56,21 @@ virtualenv などを使うことで、その閉じた環境の中に追加で必
 例えば virtualenv を使って ansible 最新版をインストール、試してみるとしましょう。
 おそらく次のような手順となるはずです。
 
-::
+.. code-block:: console
 
-  [ssato@x1-carbon-gen6 ~]$ virtualenv /tmp/py38
+  [ssato@localhost ~]$ virtualenv /tmp/py38
   Using base prefix '/usr'
   New python executable in /tmp/py38/bin/python3
   Also creating executable in /tmp/py38/bin/python
   Installing setuptools, pip, wheel...
   done.
-  [ssato@x1-carbon-gen6 py38]$ cd /tmp/py38
-  [ssato@x1-carbon-gen6 py38]$ source ./bin/activate
-  (py38) [ssato@x1-carbon-gen6 py38]$ pip install ansible
-    ... (snip)
+  [ssato@localhost py38]$ cd /tmp/py38
+  [ssato@localhost py38]$ source ./bin/activate
+  (py38) [ssato@localhost py38]$ pip install ansible
+  ... (snip) ...
   Installing collected packages: pyparsing, packaging, MarkupSafe, jinja2, pycparser, cffi, six, cryptography, PyYAML, ansible-base, ansible
   Successfully installed MarkupSafe-1.1.1 PyYAML-5.3.1 ansible-2.10.3 ... (snip) ...
-  (py38) [ssato@x1-carbon-gen6 py38]$ ansible -m ping localhost
+  (py38) [ssato@localhost py38]$ ansible -m ping localhost
   localhost | SUCCESS => {
       "ansible_facts": {
           "discovered_interpreter_python": "/usr/bin/python3"
@@ -78,10 +78,10 @@ virtualenv などを使うことで、その閉じた環境の中に追加で必
       "changed": false,
       "ping": "pong"
   }
-  (py38) [ssato@x1-carbon-gen6 py38]$ deactivate
-  [ssato@x1-carbon-gen6 py38]$ cd -
+  (py38) [ssato@localhost py38]$ deactivate
+  [ssato@localhost py38]$ cd -
   ~
-  [ssato@x1-carbon-gen6 ~]$
+  [ssato@localhost ~]$
 
 virtualenv 等で作成して利用する Python 仮想環境が一個だけであればまだ何とかなります。
 しかし、もし必要な環境が一つではないとしたらどうでしょう? 例えば Python 2 と 3 両方で動くコードの開発で両方テストするとしたら?
@@ -95,9 +95,10 @@ tox は virtualenv のラッパーとして働き、煩雑な部分を隠蔽し�
 (Python 仮想環境の中でテストを実行したい、など) を実行してくれます。
 
 例えば、次のようにすれば先の例と同様に閉じた仮想環境内で ansible 最新版をインストール、試してみることができます。
-::
 
-  [ssato@x1-carbon-gen6 00]$ cat << EOF > tox.ini
+.. code-block:: console
+
+  [ssato@localhost 00]$ cat << EOF > tox.ini
   > [tox]
   > envlist = py36
   > skipsdist = true
@@ -109,7 +110,7 @@ tox は virtualenv のラッパーとして働き、煩雑な部分を隠蔽し�
   >   ansible -m ping localhost
   >
   > EOF
-  [ssato@x1-carbon-gen6 00]$ tox
+  [ssato@localhost 00]$ tox
   py36 create: /tmp/0/00/.tox/py36
   py36 installdeps: ansible
   py36 installed: ansible==2.10.3, ... (snip) ...
@@ -125,16 +126,17 @@ tox は virtualenv のラッパーとして働き、煩雑な部分を隠蔽し�
   _______________________________ summary _____________________________
     py36: commands succeeded
     congratulations :)
-  [ssato@x1-carbon-gen6 00]$
+  [ssato@localhost 00]$
 
 またこの例では実行時の最新の Ansible (2.10.3) をインストール、実行していますが、
 Ansible Playbook を実行している環境ではより古いバージョンを利用しているということもあるかもしれません。
 そこでより古い Ansible 2.9.x でも同じように実行してみることとしましょう。
 
 次のように tox の設定ファイルをすこしだけ変更して実行してみるとこれが可能となります。
-::
 
-  [ssato@x1-carbon-gen6 00]$ cat tox.ini
+.. code-block:: console
+
+  [ssato@localhost 00]$ cat tox.ini
   [tox]
   envlist = py36
   skipsdist = true
@@ -145,8 +147,8 @@ Ansible Playbook を実行している環境ではより古いバージョンを
   commands =
     ansible -m ping localhost
 
-  [ssato@x1-carbon-gen6 00]$ sed -i.save 's/ansible$/& == 2.9/' tox.ini
-  [ssato@x1-carbon-gen6 00]$ diff -u tox.ini{.save,}
+  [ssato@localhost 00]$ sed -i.save 's/ansible$/& == 2.9/' tox.ini
+  [ssato@localhost 00]$ diff -u tox.ini{.save,}
   --- tox.ini.save        2020-11-30 02:09:42.614733037 +0900
   +++ tox.ini     2020-11-30 02:20:28.380544560 +0900
   @@ -4,7 +4,7 @@
@@ -158,8 +160,8 @@ Ansible Playbook を実行している環境ではより古いバージョンを
    commands =
      ansible -m ping localhost
 
-  [ssato@x1-carbon-gen6 00]$ rm -rf .tox/
-  [ssato@x1-carbon-gen6 00]$ tox
+  [ssato@localhost 00]$ rm -rf .tox/
+  [ssato@localhost 00]$ tox
   py36 create: /tmp/0/00/.tox/py36
   py36 installdeps: ansible == 2.9
   py36 installed: ansible==2.9.0, ... (snip) ...
@@ -175,7 +177,7 @@ Ansible Playbook を実行している環境ではより古いバージョンを
   _______________________________ summary _____________________________
     py36: commands succeeded
     congratulations :)
-  [ssato@x1-carbon-gen6 00]$
+  [ssato@localhost 00]$
 
 先の例と違って今度は ansible の少し古いバージョン 2.9.0 がインストール、使われているのがわかります。
 
@@ -198,12 +200,13 @@ Python ライブラリをインストールしなければならないという�
 - ansible や python の複数のバージョンの組み合わせに対してテスト: 個々の環境を細かく virtualenv で管理しなくてよい、など
 
 実際に、先の例の tox.ini を拡張して ansible 最新版と ansible 2.9.x の両方で実行してみましょう。
-::
 
-  ssato@x1-carbon-gen6% rm -rf .tox
-  ssato@x1-carbon-gen6% cat requirements.txt
+.. code-block:: console
+
+  ssato@localhost% rm -rf .tox
+  ssato@localhost% cat requirements.txt
   ansible
-  ssato@x1-carbon-gen6% diff -u tox.ini{.save,}
+  ssato@localhost% diff -u tox.ini{.save,}
   --- tox.ini.save        2020-11-30 02:09:42.614733037 +0900
   +++ tox.ini     2020-11-30 13:17:16.294919336 +0900
   @@ -1,10 +1,14 @@
@@ -224,7 +227,7 @@ Python ライブラリをインストールしなければならないという�
   +[testenv:py36-ansible29]
   +deps =
   +  ansible == 2.9
-  ssato@x1-carbon-gen6% cat tox.ini
+  ssato@localhost% cat tox.ini
   [tox]
   envlist = py36{,-ansible29}
   skipsdist = true
@@ -239,7 +242,7 @@ Python ライブラリをインストールしなければならないという�
   [testenv:py36-ansible29]
   deps =
     ansible == 2.9
-  ssato@x1-carbon-gen6% tox
+  ssato@localhost% tox
   py36 create: /tmp/0/00/.tox/py36
   py36 installdeps: -r/tmp/0/00/requirements.txt
   py36 installed: ansible==2.10.3,ansible-base==2.10.3, ... (snip) ...
@@ -282,7 +285,7 @@ Python ライブラリをインストールしなければならないという�
     py36: commands succeeded
     py36-ansible29: commands succeeded
     congratulations :)
-  ssato@x1-carbon-gen6%
+  ssato@localhost%
 
 Tox + CI サービス
 -------------------
@@ -331,7 +334,8 @@ OS 標準形式のパッケージがない場合も pip install tox とすれば
 
 例えば RHEL 8 または CentOS 8 をご利用の場合は EPEL リポジトリを有効化 [#]_ した上で、Fedora
 をご利用の場合はそのまま、いずれの場合も次のコマンドを実行すればインストールできるでしょう。
-::
+
+.. code-block:: console
 
   $ sudo dnf install -y python3-tox
 
@@ -341,7 +345,8 @@ Tox をさわってみる
 ---------------------
 
 tox の実行には設定ファイルが必ず必要となります。次のような内容の tox.ini というファイルを tox を実行する場所に用意します。
-::
+
+.. code-block:: ini
 
   [tox]
   envlist = py36
@@ -366,9 +371,10 @@ tox の実行には設定ファイルが必ず必要となります。次のよ�
   - commands: 各環境で実行するコマンドを列挙します。
 
 試しに先の内容の tox.ini を用意して tox を実行すると次のようになります。
-::
 
-  ssato@x1-carbon-gen6% cat tox.ini
+.. code-block:: console
+
+  ssato@localhost% cat tox.ini
   [tox]
   envlist = py36
   skipsdist = true
@@ -378,7 +384,7 @@ tox の実行には設定ファイルが必ず必要となります。次のよ�
       ansible
   commands =
       ansible --version
-  ssato@x1-carbon-gen6% tox
+  ssato@localhost% tox
   py36 create: /tmp/0/01/.tox/py36
   py36 installdeps: ansible
   py36 installed: ansible==2.10.3,ansible-base==2.10.3,cffi==1.14.4, ... (snip) ...
@@ -393,7 +399,7 @@ tox の実行には設定ファイルが必ず必要となります。次のよ�
   ______________________________________________ summary ___________________________________
     py36: commands succeeded
     congratulations :)
-  ssato@x1-carbon-gen6%
+  ssato@localhost%
 
 ここでは簡単な説明と例、さらに tox.ini のいくつかのより実践的な例を示すにとどめておきます。
 
