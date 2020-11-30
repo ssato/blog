@@ -8,6 +8,7 @@ Ansible Lint と YAML Lint の話 (イントロダクション)
 :slug: ansible-lint-yaml-lint-intro
 :authors: Satoru SATOH
 :summary: Ansible Lint と YAML Lint の話 (イントロダクション)
+:status: published
 
 What's this?
 =============
@@ -15,8 +16,8 @@ What's this?
 これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
 他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。
 
-- https://adventar.org/calendars/5719
 - https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
+- https://adventar.org/calendars/5719
 
 Lint って何?
 ==============
@@ -101,34 +102,34 @@ Ansible Playbook でも Lint ツールがあって色々静的解析できそう
 
 - shell モジュールを利用 (1):
 
-  ::
+  .. code-block:: yaml
 
     - shell: yum install -y httpd
 
 - shell モジュールを利用 (2):
 
-  ::
+  .. code-block:: yaml
 
     - name: Ensure httpd package is installed
       shell: yum install -y httpd
 
 - command モジュールを利用:
 
-  ::
+  .. code-block:: yaml
 
     - name: Ensure httpd package is installed
       command: yum install -y httpd
 
 - package モジュールを利用 (1):
 
-  ::
+  .. code-block:: yaml
 
     - name: Ensure httpd package is installed
       package: name=httpd state=present
 
 - package モジュールを利用 (2):
 
-  ::
+  .. code-block:: yaml
 
     - name: Ensure httpd package is installed
       package:
@@ -137,7 +138,7 @@ Ansible Playbook でも Lint ツールがあって色々静的解析できそう
 
 - package モジュールを利用 (3):
 
-  ::
+  .. code-block:: yaml
 
     - name: Ensure httpd package is installed
       package:
@@ -147,7 +148,7 @@ Ansible Playbook でも Lint ツールがあって色々静的解析できそう
 
 - yum モジュールを利用:
 
-  ::
+  .. code-block:: yaml
 
     - name: Ensure httpd package is installed
       yum:
