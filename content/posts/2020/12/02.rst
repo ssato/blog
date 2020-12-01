@@ -8,6 +8,7 @@ tox のすすめ
 :slug: recommend-to-use-tox
 :authors: Satoru SATOH
 :summary: tox のすすめ
+:status: published
 
 What's this?
 =============
@@ -17,6 +18,12 @@ What's this?
 
 - https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
 - https://adventar.org/calendars/5719
+
+前置き
+============
+
+今日の記事は Ansible とも関連する Python の仮想環境管理支援ツール tox についてとなります。
+『Ansible と関係あるの?』という疑問もあるかと思いますが、tox がどういったものでなぜ必要なのか順番に説明しますので少々辛抱を。
 
 Tox って何?
 ============
@@ -41,6 +48,8 @@ Python で開発しているコードをテストするためには、そのコ�
 環境に既にインストール済みであれば良いのですが、大抵の場合はどうにかして新たに追加インストールしなければならないことが多いです。
 
 この問題を解決するために Python では virtualenv などのツールが用意されています。
+
+- https://virtualenv.pypa.io
 
 virtualenv は指定した特定ディレクトリ下を閉じた環境として利用するようにできます。
 virtualenv などを使うことで、その閉じた環境の中に追加で必要なライブラリなどをインストールしたり、その中で開発コードを実行したりできます。
@@ -132,20 +141,9 @@ tox は virtualenv のラッパーとして働き、煩雑な部分を隠蔽し�
 Ansible Playbook を実行している環境ではより古いバージョンを利用しているということもあるかもしれません。
 そこでより古い Ansible 2.9.x でも同じように実行してみることとしましょう。
 
-次のように tox の設定ファイルをすこしだけ変更して実行してみるとこれが可能となります。
+次のように tox の設定ファイルをすこしだけ変更しするだけで Ansible 2.9 を使うことができます [#]_ 。
 
 .. code-block:: console
-
-  [ssato@localhost 00]$ cat tox.ini
-  [tox]
-  envlist = py36
-  skipsdist = true
-
-  [testenv]
-  deps =
-    ansible
-  commands =
-    ansible -m ping localhost
 
   [ssato@localhost 00]$ sed -i.save 's/ansible$/& == 2.9/' tox.ini
   [ssato@localhost 00]$ diff -u tox.ini{.save,}
@@ -179,22 +177,26 @@ Ansible Playbook を実行している環境ではより古いバージョンを
     congratulations :)
   [ssato@localhost 00]$
 
+
+.. [#] 各環境毎に .tox/ 下にインストールパスが用意されています。先のデータが残っているのでまっさらな状態からやり直すために、一旦削除して初期化しています。
+
 先の例と違って今度は ansible の少し古いバージョン 2.9.0 がインストール、使われているのがわかります。
 
 なぜ Ansible Playbook 開発で tox が必要?
 -------------------------------------------
 
 Ansible はもう大分成熟してはいますがまだ開発は活発に続いています。
-Ansible Playbook のより良い書き方や構文なども Ansible のバージョンに応じて少し変る場合もあります。
+Ansible Playbook のより良い書き方や構文などが Ansible のバージョンに依存する可能性は程度の差こそあれ大いにありえますし、実際過去にありました。
+また Ansible Playbook の実行には外部のライブラリなどを必要とする場合も多く、その場合はそれらのバージョンに依存して挙動が変るかもしれません。
 
-Ansible のバージョンが上るとすぐに動いていた Playbook が動かなくなるということはあまりないです。
-しかし Ansible Playbook も IaC 化された『コード』である以上、他のプログラミング言語での開発と同様に現行やより古いバージョン、また将来のリリースに備え
-Ansible の複数のバージョンに対するテストがほぼ必須になってきます。
+依存する外部ライブラリも OS パッケージが用意されていれば簡単ですがそうではない場合、追加インストールが必要となります [#]_ 。
+したがって追加インストールは大抵の場合は pip install で行うことになりますが OS 組込のパッケージ管理システムとの使い分けも煩雑ですし、
+pip はそれらと比較するとシンプルなパッケージ管理システムですので一貫して将来も管理することはむずかしいです。
 
-また単純にある Ansible Collection や Module を Playbook の中で使うために追加で
-Python ライブラリをインストールしなければならないということもよくあります。
+Ansible や依存する外部ライブラリのバージョンが上るとすぐに動いていた Playbook が動かなくなるということは実際にはあまりありません。
+しかし Ansible Playbook も IaC 化された『コード』である以上、他のプログラミング言語での開発と同様に Ansible や他の依存ライブラリの様々なバージョンの組み合わせで動作するように恒常的にテストしておく、CI しておくことが必須になってきます。
 
-以上をふまえると Ansible Playbook 開発においても次のようなことを簡単に実現するために tox を使うと良いわけです。
+以上をふまえると Ansible Playbook 開発においても次のようなことを簡単に実現するために tox を使う必要があるわけです。
 
 - 閉じた python 仮想環境内でテスト: 開発環境の OS にライブラリ等を追加インストールしなくてよlい、など
 - ansible や python の複数のバージョンの組み合わせに対してテスト: 個々の環境を細かく virtualenv で管理しなくてよい、など
@@ -287,6 +289,8 @@ Python ライブラリをインストールしなければならないという�
     congratulations :)
   ssato@localhost%
 
+.. [#] 完全に余談ですがシステムグローバルにインストールが必要な場合、パッケージ管理ツールをまぜると危険なので、筆者は必ず自分の環境 (Fedora) にあわせて OS native のパッケージ (RPM) を自身で作成、管理していて pip install 等で直接インストールすることはほぼありません。RPM 作成については来年別にどこかで記事化する予定です。
+
 Tox + CI サービス
 -------------------
 
@@ -299,7 +303,7 @@ GitHub Actions などの CI サービスを使うことも増えてきました�
 
 そこで tox を使ってテスト手順を隠蔽し CI サービス側の設定は tox 呼出しだけにしてしまいましょう。
 tox を使って設定をシンプルにできるだけではなく、さらに幸運なことに、いくつかのサービスでは
-tox のそのサービス対応の plugin が利用できる場合もあり、pluing を使うことで色々便利になったりします。
+tox のそのサービス対応の plugin が利用できる場合もあり、pluing を使うことでますます便利になったりします。
 
 ここでは Ansilbe Role を CI サービスを使って CI (lint, unit + integration tests) する例をあげておきます。
 
@@ -328,7 +332,7 @@ Tox を使ってみよう
 Tox のインストール
 ---------------------
 
-tox は Python 開発では有名でほぼ必須となるツールなので、各種 OS や
+Tox は Python 開発では非常に有名でほぼ必須に近いツールなので、各種 OS や
 Linux ディストリビューションでは最初からパッケージが用意されているか、オプションのリポジトリなどを利用、また
 OS 標準形式のパッケージがない場合も pip install tox とすれば簡単に追加インストールできるはずです。
 
@@ -360,12 +364,12 @@ tox の実行には設定ファイルが必ず必要となります。次のよ�
 
 簡単に各々の設定項目についてふれると、
 
-- tox セクション:
+- tox セクション ([tox] から次の [...] の手前まで):
 
   - envlist: 何かを実行する (Python) 環境のリストをカンマ (,) でつなげて列挙します。pyNM (py36 = python 3.6 の環境) といった指定をします。どういった値を指定できるかは https://tox.readthedocs.io/en/latest/config.html#tox-environments などもあわせてご参照下さい。
   - skipsdist: 元々 tox は python の setuptools によるパッケージの開発に使うものなので setup.py などそれ用のファイルがないと実行できませんが、この指定はそれをなしでも tox を使えるようにするおまじないです。
 
-- testenv セクション:
+- testenv セクション ([testenv] から次の [...] またファイル末尾の手前まで):
 
   - deps: 依存関係から追加インストールが必要となる Python パッケージのリストを列挙します。pip install 以降に指定できる文字列を記述できます。必要なものすべてを列挙しても良いのですが、おすすめは先程の例にあげた requirements.txt という別ファイルを用意してそちらに列挙、こちらの tox の設定では requirements.txt を参照する( -r {toxinidir}/requirements.txt と指定) ようにする方法です。
   - commands: 各環境で実行するコマンドを列挙します。
@@ -401,13 +405,12 @@ tox の実行には設定ファイルが必ず必要となります。次のよ�
     congratulations :)
   ssato@localhost%
 
-ここでは簡単な説明と例、さらに tox.ini のいくつかのより実践的な例を示すにとどめておきます。
+ここでは簡単な説明と例、さらに tox.ini のいくつかのより実践的な tox.ini の設定例を示すにとどめておきます。
+さらに詳しく使い方を知りたい方は冒頭でふれた tox の公式ホームからたどれる文書などもあわせてご参照下さい。
 
-- ansible role のテストを tox で: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/tox.ini
+- ansible role のテストを tox で: 先の Tox + CI の例をご参照下さい
 - ansible-lint のカスタム Rule のテストを tox で: https://github.com/ssato/ansible-lint-custom-rules/blob/master/tox.ini
 - yamllint のテストを tox で: https://github.com/ssato/yamllint/blob/feature/simplify-travis-ci-configuration/tox.ini
-
-さらに詳しく使い方を知りたい方は冒頭でふれた tox の公式ホームからたどれる文書などもあわせてご参照下さい。
 
 次回予告
 ===================
