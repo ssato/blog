@@ -319,6 +319,11 @@ tox のそのサービス対応の plugin が利用できる場合もあり、pl
   - Travis-CI 設定: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/.travis.yml
   - Travis-CI による CI 結果例: https://travis-ci.org/github/ssato/ansible-role-simple-httpd-example/builds/743889203
 
+- Azure Pipelines で CI:
+
+  - Azure Pipelines 設定: https://github.com/ssato/ansible-role-simple-httpd-example/blob/master/azure-pipelines.yml
+  - Azure Pipelines による CI 結果例: https://dev.azure.com/satorusatoh0471/ansible-role-simple-httpd-example/_build/results?buildId=8&view=results
+
 いずれの場合も CI で実行する処理内容 (lint, unit + integration tests など) については tox の設定で行っている [#]_ ため、
 CI サービスによって処理内容は変らず、全く同じ内容と手順で実行されます。
 
