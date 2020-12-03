@@ -1,0 +1,360 @@
+Ansible Lint と YAML Lint の話 - 使い方編 (2)
+##############################################
+
+:date: 2020-12-04 00:44
+:modified: 2020-12-04 00:44
+:tags: ansible, lint
+:category: ansible
+:slug: ansible-lint-yaml-lint-usage-2
+:authors: Satoru SATOH
+:summary: Ansible Lint と YAML Lint の話 - 使い方編 (2)
+:status: published
+
+What's this?
+=============
+
+これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。
+
+- https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
+- https://adventar.org/calendars/5719
+
+Lint を使ってみよう
+=====================
+
+`前回記事 <{filename}03.rst>`_ では yamllint の使い方について紹介しました。
+本記事では Ansible-lint について使い方を簡単に紹介します。
+
+前準備
+----------
+
+ツールの導入を簡単にするために以降では `前々回記事 <{filename}02.rst>`_ でふれた tox というツールの利用を前提としています。
+この記事に書かれていることを試したりする際はまず tox をご用意下さい。
+
+Ansible-lint を使ってみよう
+----------------------------
+
+ansible-lint は pip でインストールできます。
+前回記事と同様に tox で試してみましょう。
+
+前準備として次のような tox.ini と tox 内で参照する requirements.txt というファイルを用意しておきます。
+
+.. code-block:: console
+
+  [ssato@localhost 04]$ ls
+  requirements.txt  tox.ini
+  [ssato@localhost 04]$ cat requirements.txt
+  ansible-lint
+  [ssato@localhost 04]$ cat tox.ini
+  [tox]
+  envlist = py36
+  skipsdist = true
+
+  [testenv]
+  deps =
+      -r {toxinidir}/requirements.txt
+  commands =
+      ansible-lint --version
+      ansible-lint --help
+  [ssato@localhost 04]$ tox
+
+tox を使って一旦 ansible-lint をインストール、ヘルプを表示してみましょう。
+
+.. code-block:: console
+
+  [ssato@localhost 04]$ tox
+  py36 create: /tmp/0/04/.tox/py36
+  py36 installdeps: -r/tmp/0/04/requirements.txt
+  py36 installed: ansible==2.10.4,ansible-base==2.10.3,ansible-lint==4.3.7, .. (snip) ..
+  py36 run-test-pre: PYTHONHASHSEED='641665413'
+  py36 run-test: commands[0] | ansible-lint --version
+  ansible-lint 4.3.7
+  py36 run-test: commands[1] | ansible-lint --help
+  usage: ansible-lint [-h] [-L] [-f {rich,plain,rst}] [-q] [-p]
+                      [--parseable-severity] [--progressive] [-r RULESDIR] [-R]
+                      [--show-relpath] [-t TAGS] [-T] [-v] [-x SKIP_LIST]
+                      [-w WARN_LIST] [--nocolor] [--force-color]
+                      [--exclude EXCLUDE_PATHS] [-c CONFIG_FILE] [--version]
+                      [playbook [playbook ...]]
+
+  positional arguments:
+    playbook              One or more files or paths. When missing it will
+                          enable auto-detection mode.
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -L                    list all the rules
+    -f {rich,plain,rst}   Format used rules output, (default: rich)
+    -q                    quieter, although not silent output
+    -p                    parseable output in the format of pep8
+    --parseable-severity  parseable output including severity of rule
+    --progressive         Return success if it detects a reduction in number of
+                          violations compared with previous git commit. This
+                          feature works only in git repositories.
+    -r RULESDIR           Specify custom rule directories. Add -R to keep using
+                          embedded rules from
+                          /tmp/0/04/.tox/py36/lib/python3.6/site-
+                          packages/ansiblelint/rules
+    -R                    Keep default rules when using -r
+    --show-relpath        Display path relative to CWD
+    -t TAGS               only check rules whose id/tags match these values
+    -T                    list all the tags
+    -v                    Increase verbosity level
+    -x SKIP_LIST          only check rules whose id/tags do not match these
+                          values
+    -w WARN_LIST          only warn about these rules, unless overridden in
+                          config file defaults to 'experimental'
+    --nocolor             disable colored output
+    --force-color         Try force colored output (relying on ansible's code)
+    --exclude EXCLUDE_PATHS
+                          path to directories or files to skip. This option is
+                          repeatable.
+    -c CONFIG_FILE        Specify configuration file to use. Defaults to
+                          ".ansible-lint"
+    --version             show program's version number and exit
+  _____________________________________ summary _____________________________
+    py36: commands succeeded
+    congratulations :)
+  [ssato@localhost 04]$
+
+ansible-lint の対象ファイルは一つ以上の Ansible Playbook ファイルまたは role ディレクトリとなります。
+指定のファイルまたはディレクトリを起点にしてたどって参照されている
+Ansible Role を構成するいくつかのファイルもあわせて読込み、ルールにそってチェックします。
+
+ansible-lint をより実践的に試すために Ansible Playbook を用意してみましょう。
+前回と同様、内容的にあまり意味はないのですがサンプルとして次のようなものを用意してみます。
+
+- ファイルとディレクトリ構造:
+
+.. code-block:: console
+
+  [ssato@localhost 04]$ ls
+  40_ping.yml  requirements.txt  roles  tox.ini
+  [ssato@localhost 04]$ tree
+  .
+  ├── 40_ping.yml
+  ├── requirements.txt
+  ├── roles
+  │   └── do_ping
+  │       ├── defaults
+  │       │   └── main.yml
+  │       └── tasks
+  │           ├── debug.yml
+  │           ├── main.yml
+  │           └── ping.yml
+  └── tox.ini
+
+  4 directories, 7 files
+  [ssato@localhost 04]$
+
+- 40_ping.yml (Ansible Playbook):
+
+.. code-block:: yaml
+
+  ---
+  - hosts: localhost
+    roles:
+      - do_ping
+
+- roles/do_ping/defaults/main.yml
+
+.. code-block:: yaml
+
+  ---
+  foo: true
+  bar: "yes"
+
+- roles/do_ping/tasks/main.yml
+
+.. code-block:: yaml
+
+  ---
+  - include_tasks: debug.yml
+  - include_tasks: ping.yml
+ 
+- roles/do_ping/tasks/debug.yml
+
+.. code-block:: yaml
+
+  ---
+  - debug:
+      msg: >-
+        foo: {{ foo | d(true) }}
+        bar: {{ bar | d('yes') }}
+
+- roles/do_ping/tasks/ping.yml
+
+.. code-block:: yaml
+
+  ---
+  - ping:
+  - name: Run ping command
+    shell: >-
+      ping -c 3 {{ inventory_hostname }}
+
+ansible-playbook コマンドで --syntax-check し実際に実行しても特に問題はないことがわかります。
+
+.. code-block:: console
+
+  [ssato@localhost 04]$ source .tox/py36/bin/activate
+  (py36) [ssato@localhost 04]$ ansible-playbook --syntax-check 40_ping.yml ; echo $?
+
+  playbook: 40_ping.yml
+  0
+  (py36) [ssato@localhost 04]$ ansible-playbook 40_ping.yml
+
+  PLAY [localhost] *************************************************************
+
+  TASK [Gathering Facts] *******************************************************
+  ok: [localhost]
+
+  TASK [do_ping : include_tasks] ***********************************************
+  included: /tmp/0/04/roles/do_ping/tasks/debug.yml for localhost
+
+  TASK [do_ping : debug] *******************************************************
+  ok: [localhost] => {
+      "msg": "foo: True bar: yes"
+  }
+
+  TASK [do_ping : include_tasks] ***********************************************
+  included: /tmp/0/04/roles/do_ping/tasks/ping.yml for localhost
+
+  TASK [do_ping : ping] ********************************************************
+  ok: [localhost]
+
+  TASK [do_ping : Run ping command] ********************************************
+  changed: [localhost]
+
+  PLAY RECAP *******************************************************************
+  localhost  : ok=6  changed=1  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0
+
+  (py36) [ssato@localhost 04]$
+
+それでは ansible-lint を試してみましょう。
+
+.. code-block:: console
+
+  (py36) [ssato@localhost 04]$ ansible-lint 40_ping.yml
+  WARNING  Listing 3 violation(s) that are fatal
+  [502] All tasks should be named
+  roles/do_ping/tasks/ping.yml:2
+  Task/Handler: ping
+
+  [301] Commands should not change things if nothing needs doing
+  roles/do_ping/tasks/ping.yml:3
+  Task/Handler: Run ping command
+
+  [305] Use shell only when shell functionality is required
+  roles/do_ping/tasks/ping.yml:3
+  Task/Handler: Run ping command
+
+  You can skip specific rules or tags by adding them to your configuration file:
+
+  ┌────────────────────────────────────────────────────────────────────────────────┐
+  │ # .ansible-lint                                                                │
+  │ warn_list:  # or 'skip_list' to silence them completely                        │
+  │   - '301'  # Commands should not change things if nothing needs doing          │
+  │   - '305'  # Use shell only when shell functionality is required               │
+  │   - '502'  # All tasks should be named                                         │
+  └────────────────────────────────────────────────────────────────────────────────┘
+  (py36) [ssato@localhost 04]$
+
+いくつか警告が表示されましたが次のように変更して対応できます。
+
+.. code-block:: console
+
+  (py36) [ssato@localhost 04]$ cp -a roles/do_ping{,_ng}
+  (py36) [ssato@localhost 04]$ vi roles/do_ping/tasks/ping.yml
+  (py36) [ssato@localhost 04]$ diff -uNr roles/do_ping{_ng,}
+  diff -uNr roles/do_ping_ng/tasks/ping.yml roles/do_ping/tasks/ping.yml
+  --- roles/do_ping_ng/tasks/ping.yml     2020-12-03 23:45:22.893212088 +0900
+  +++ roles/do_ping/tasks/ping.yml        2020-12-03 23:56:31.211030940 +0900
+  @@ -1,5 +1,8 @@
+   ---
+  -- ping:
+  +- name: Run ping module
+  +  ping:
+  +
+   - name: Run ping command
+  -  shell: >-
+  +  command: >-
+       ping -c 3 {{ inventory_hostname }}
+  +  changed_when: false
+  (py36) [ssato@localhost 04]$ ansible-lint 40_ping.yml ; echo $?
+  0
+  (py36) [ssato@localhost 04]$
+
+このルールも含めた ansible-lint でチェック可能な標準ルールについては公式文書もあわせてご参照下さい。
+
+- https://ansible-lint.readthedocs.io/en/latest/default_rules.html
+
+ansible-lint のルールの探索パス
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+ansible-lint は default では ansible-lint の python モジュールのインストールパス下から適用するルールを探します。
+
+- 標準ルール rules/ 内の .py\*: Python ファイル、ansiblelint.rules.AnsibleLintRule class を継承する class 定義を必ず含み、一つルールを実装
+- (plugin 形式の) カスタムルール rules/custom/<plugin_name>/ 内の .py\*: 場所が異なることを除き、標準ルールと同じ
+
+後者については筆者が中心となってこの場所に標準化しました [#]_ ので作法に沿って
+python パッケージとして作られた ansible-lint plugin [#]_ であればインストールするだけで標準ルールに加えて適用されます。
+
+ルールの探索パスは -r と -R の二つのコマンド行オプションによって制御できます。
+これらのオプションの組合せによって default に加えてルール探索パスを追加したり、
+default の探索パスは使わず指定のルール探索パスだけを利用したりできます。
+
+詳細については公式文書も含めてご参照下さい。
+
+- https://ansible-lint.readthedocs.io/en/latest/rules.html#specifying-rules-at-runtime
+
+.. [#] https://github.com/ansible/ansible-lint/pull/935
+.. [#] カスタムルールの plugin パッケージ化については https://ansible-lint.readthedocs.io/en/latest/rules.html#packaging-custom-rules を参照。
+
+ansible-lint のルールの有効化・無効化
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Ansible-lint は yamllint と違い、通常ルール側で何か特別な設定方法がないかぎりは細かな設定などはできず、無効化できるのみとなります。
+
+Ansible-lint のルールは各ルールにあらかじめ指定されているタグを使って適用するものを指定したり、除外
+したり、対象ファイルの中でコメントや task 定義の中の tags に
+skip_ansible_lint を指定してスキップ (その部分についてルールを適用しない = 無効化)
+したりできます。
+また .ansible-lint という設定ファイルでも細かな挙動の制御に加えて同様の設定が可能です。
+
+いずれの設定方法についても公式文書に詳細に説明がありますのでご参照下さい。
+
+- ansible-lint 実行時にオプションで指定:
+
+  - タグで指定: https://ansible-lint.readthedocs.io/en/latest/rules.html#using-tags-to-include-rules
+  - オプションで除外: https://ansible-lint.readthedocs.io/en/latest/rules.html#excluding-rules
+
+- 対象ファイル内でルール適用をスキップするように設定 (コメントまたは task 定義の tags で指定): https://ansible-lint.readthedocs.io/en/latest/rules.html#false-positives-skipping-rules
+- 設定ファイルで指定: https://ansible-lint.readthedocs.io/en/latest/configuring.html#configuration-file
+
+なお筆者は default ルールを無効化することはほぼなく、あるとしても局所的に
+tags に skip_ansible_lint を指定するなどで対応しています。
+そしてほとんどの場合 default ルールだけでは十分なチェックとはならず、カスタムルールを実装、パッケージ化し追加しています。
+
+yamllint の記事でもふれましたが default ルールには ansible 利用者の経験からくる知見に基づく根拠のあるものがつまっています。
+何か警告が出たら設定でとにかくそれを表示させなくするのではなく、まず修正を試みましょう。
+ほとんどの場合ルールによる警告などの指摘は正しく、無効化の必要はないはずです。
+
+ansible-lint によるチェックを CI に組み込む
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+実際、筆者は yamllint と同様に ansible-lint を直接実行することはほぼなく、CI の中か tox (molecule) 経由で実行することがほとんどです。
+おすすめは role のテストも実装し molecule を使う方法ですが、すぐには難しい場合は先にあげた例のように
+tox.ini の commands に列挙されている一部に yamllint . 行を例えば追加し、tox 経由で実行するのが良いでしょう。
+
+tox 経由で実行されるようにしてあれば yamllint と同様に意識することなく CI または tox 実行で一緒に実行されるようにできます。
+
+また公式文書で示されているように pre-commit を使うのも良いでしょう
+
+- https://ansible-lint.readthedocs.io/en/latest/configuring.html#pre-commit-setup
+
+次回予告
+===================
+
+次回の記事までは少し期間が空くかもしれませんが Ansible Lint のカスタムルール実装の方法とパッケージ化の実際について簡単な説明を予定しています。
+
+.. vim:sw=2:ts=2:et:
