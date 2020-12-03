@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ssato's blog</title>
+	<meta name="description" content="">
+	<meta name="author" content="Satoru SATOH">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML elements -->
+	<!--[if lt IE 9]>
+		<script src="https://ssato.github.io/blog/theme/html5.js"></script>
+	<![endif]-->
+
+	<!-- Styles -->
+	<link href="https://ssato.github.io/blog/theme/bootstrap.min.css" rel="stylesheet">
+	<link href="https://ssato.github.io/blog/theme/local.css" rel="stylesheet">
+	<link href="https://ssato.github.io/blog/theme/pygments.css" rel="stylesheet">
+
+	<!-- Feeds -->
+	<link href="https://ssato.github.io/blog/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="ssato's blog Atom Feed" />
+
+
+
+
+</head>
+<body>
+	<div class="topbar">
+	  <div class="topbar-inner">
+		<div class="container-fluid">
+		  <a class="brand" href="https://ssato.github.io/blog/">ssato's blog</a>
+			<ul class="nav">
+					<li class="active"><a href="https://ssato.github.io/blog/category/ansible.html">ansible</a></li>
+					<li ><a href="https://ssato.github.io/blog/category/python.html">python</a></li>
+			</ul>
+			<p class="pull-right"><a href="https://ssato.github.io/blog/archives.html">[archives]</a> <a href="https://ssato.github.io/blog/tags.html">[tags]</a></p>
+		</div>
+	  </div>
+	</div>
+
+	<div class="container-fluid">
+	  <div class="sidebar">
+		<div class="well">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://getpelican.com/">Pelican</a></li>
+				<li><a href="http://python.org/">Python.org</a></li>
+				<li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+			</ul>
+			<div class="social">
+			<h3>Social</h3>
+			<ul>
+				<li><a href="https://github.com/ssato/">Github</a></li>
+				<li><a href="https://www.instagram.com/satoh.satoru/">Instagram</a></li>
+				<li><a href="https://twitter.com/satoru_satoh">Twitter</a></li>
+			</ul>
+			</div>
+		</div>
+	  </div>
+	  <div class="content">
+	<div class='article'>
+		<div class="page-header"><h1>Ansible Lint と YAML Lint の話 - 使い方編 (2)</h1></div>
+		<div class="well small">Permalink: <a class="more" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage-2.html">2020-12-04 00:44:00+09:00</a>
+by <a class="url fn" href="https://ssato.github.io/blog/author/satoru-satoh.html">Satoru SATOH </a>
+ in <a href="https://ssato.github.io/blog/category/ansible.html">ansible</a>
+tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a href="https://ssato.github.io/blog/tag/lint.html">lint</a> </div>
+		<div><div class="section" id="what-s-this">
+<h2>What's this?</h2>
+<p>これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://qiita.com/advent-calendar/2020/ansible_01">https://qiita.com/advent-calendar/2020/ansible_01</a> (Qiita のみ)</li>
+<li><a class="reference external" href="https://adventar.org/calendars/5719">https://adventar.org/calendars/5719</a></li>
+</ul>
+</div>
+<div class="section" id="lint">
+<h2>Lint を使ってみよう</h2>
+<p><a class="reference external" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage-1.html">前回記事</a> では yamllint の使い方について紹介しました。
+本記事では Ansible-lint について使い方を簡単に紹介します。</p>
+<div class="section" id="id2">
+<h3>前準備</h3>
+<p>ツールの導入を簡単にするために以降では <a class="reference external" href="https://ssato.github.io/blog/recommend-to-use-tox.html">前々回記事</a> でふれた tox というツールの利用を前提としています。
+この記事に書かれていることを試したりする際はまず tox をご用意下さい。</p>
+</div>
+<div class="section" id="ansible-lint">
+<h3>Ansible-lint を使ってみよう</h3>
+<p>ansible-lint は pip でインストールできます。
+前回記事と同様に tox で試してみましょう。</p>
+<p>前準備として次のような tox.ini と tox 内で参照する requirements.txt というファイルを用意しておきます。</p>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 04]$</span> ls
+<span class="go">requirements.txt  tox.ini</span>
+<span class="gp">[ssato@localhost 04]$</span> cat requirements.txt
+<span class="go">ansible-lint</span>
+<span class="gp">[ssato@localhost 04]$</span> cat tox.ini
+<span class="go">[tox]</span>
+<span class="go">envlist = py36</span>
+<span class="go">skipsdist = true</span>
+
+<span class="go">[testenv]</span>
+<span class="go">deps =</span>
+<span class="go">    -r {toxinidir}/requirements.txt</span>
+<span class="go">commands =</span>
+<span class="go">    ansible-lint --version</span>
+<span class="go">    ansible-lint --help</span>
+<span class="gp">[ssato@localhost 04]$</span> tox
+</pre></div>
+<p>tox を使って一旦 ansible-lint をインストール、ヘルプを表示してみましょう。</p>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 04]$</span> tox
+<span class="go">py36 create: /tmp/0/04/.tox/py36</span>
+<span class="go">py36 installdeps: -r/tmp/0/04/requirements.txt</span>
+<span class="go">py36 installed: ansible==2.10.4,ansible-base==2.10.3,ansible-lint==4.3.7, .. (snip) ..</span>
+<span class="go">py36 run-test-pre: PYTHONHASHSEED=&#39;641665413&#39;</span>
+<span class="go">py36 run-test: commands[0] | ansible-lint --version</span>
+<span class="go">ansible-lint 4.3.7</span>
+<span class="go">py36 run-test: commands[1] | ansible-lint --help</span>
+<span class="go">usage: ansible-lint [-h] [-L] [-f {rich,plain,rst}] [-q] [-p]</span>
+<span class="go">                    [--parseable-severity] [--progressive] [-r RULESDIR] [-R]</span>
+<span class="go">                    [--show-relpath] [-t TAGS] [-T] [-v] [-x SKIP_LIST]</span>
+<span class="go">                    [-w WARN_LIST] [--nocolor] [--force-color]</span>
+<span class="go">                    [--exclude EXCLUDE_PATHS] [-c CONFIG_FILE] [--version]</span>
+<span class="go">                    [playbook [playbook ...]]</span>
+
+<span class="go">positional arguments:</span>
+<span class="go">  playbook              One or more files or paths. When missing it will</span>
+<span class="go">                        enable auto-detection mode.</span>
+
+<span class="go">optional arguments:</span>
+<span class="go">  -h, --help            show this help message and exit</span>
+<span class="go">  -L                    list all the rules</span>
+<span class="go">  -f {rich,plain,rst}   Format used rules output, (default: rich)</span>
+<span class="go">  -q                    quieter, although not silent output</span>
+<span class="go">  -p                    parseable output in the format of pep8</span>
+<span class="go">  --parseable-severity  parseable output including severity of rule</span>
+<span class="go">  --progressive         Return success if it detects a reduction in number of</span>
+<span class="go">                        violations compared with previous git commit. This</span>
+<span class="go">                        feature works only in git repositories.</span>
+<span class="go">  -r RULESDIR           Specify custom rule directories. Add -R to keep using</span>
+<span class="go">                        embedded rules from</span>
+<span class="go">                        /tmp/0/04/.tox/py36/lib/python3.6/site-</span>
+<span class="go">                        packages/ansiblelint/rules</span>
+<span class="go">  -R                    Keep default rules when using -r</span>
+<span class="go">  --show-relpath        Display path relative to CWD</span>
+<span class="go">  -t TAGS               only check rules whose id/tags match these values</span>
+<span class="go">  -T                    list all the tags</span>
+<span class="go">  -v                    Increase verbosity level</span>
+<span class="go">  -x SKIP_LIST          only check rules whose id/tags do not match these</span>
+<span class="go">                        values</span>
+<span class="go">  -w WARN_LIST          only warn about these rules, unless overridden in</span>
+<span class="go">                        config file defaults to &#39;experimental&#39;</span>
+<span class="go">  --nocolor             disable colored output</span>
+<span class="go">  --force-color         Try force colored output (relying on ansible&#39;s code)</span>
+<span class="go">  --exclude EXCLUDE_PATHS</span>
+<span class="go">                        path to directories or files to skip. This option is</span>
+<span class="go">                        repeatable.</span>
+<span class="go">  -c CONFIG_FILE        Specify configuration file to use. Defaults to</span>
+<span class="go">                        &quot;.ansible-lint&quot;</span>
+<span class="go">  --version             show program&#39;s version number and exit</span>
+<span class="go">_____________________________________ summary _____________________________</span>
+<span class="go">  py36: commands succeeded</span>
+<span class="go">  congratulations :)</span>
+<span class="gp">[ssato@localhost 04]$</span>
+</pre></div>
+<p>ansible-lint の対象ファイルは一つ以上の Ansible Playbook ファイルまたは role ディレクトリとなります。
+指定のファイルまたはディレクトリを起点にしてたどって参照されている
+Ansible Role を構成するいくつかのファイルもあわせて読込み、ルールにそってチェックします。</p>
+<p>ansible-lint をより実践的に試すために Ansible Playbook を用意してみましょう。
+前回と同様、内容的にあまり意味はないのですがサンプルとして次のようなものを用意してみます。</p>
+<ul class="simple">
+<li>ファイルとディレクトリ構造:</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 04]$</span> ls
+<span class="go">40_ping.yml  requirements.txt  roles  tox.ini</span>
+<span class="gp">[ssato@localhost 04]$</span> tree
+<span class="go">.</span>
+<span class="go">├── 40_ping.yml</span>
+<span class="go">├── requirements.txt</span>
+<span class="go">├── roles</span>
+<span class="go">│   └── do_ping</span>
+<span class="go">│       ├── defaults</span>
+<span class="go">│       │   └── main.yml</span>
+<span class="go">│       └── tasks</span>
+<span class="go">│           ├── debug.yml</span>
+<span class="go">│           ├── main.yml</span>
+<span class="go">│           └── ping.yml</span>
+<span class="go">└── tox.ini</span>
+
+<span class="go">4 directories, 7 files</span>
+<span class="gp">[ssato@localhost 04]$</span>
+</pre></div>
+<ul class="simple">
+<li>40_ping.yml (Ansible Playbook):</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="p p-Indicator">-</span> <span class="nt">hosts</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">localhost</span>
+  <span class="nt">roles</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">do_ping</span>
+</pre></div>
+<ul class="simple">
+<li>roles/do_ping/defaults/main.yml</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">foo</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nt">bar</span><span class="p">:</span> <span class="s">&quot;yes&quot;</span>
+</pre></div>
+<ul class="simple">
+<li>roles/do_ping/tasks/main.yml</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="p p-Indicator">-</span> <span class="nt">include_tasks</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">debug.yml</span>
+<span class="p p-Indicator">-</span> <span class="nt">include_tasks</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">ping.yml</span>
+</pre></div>
+<ul class="simple">
+<li>roles/do_ping/tasks/debug.yml</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="p p-Indicator">-</span> <span class="nt">debug</span><span class="p">:</span>
+    <span class="nt">msg</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
+      <span class="no">foo: {{ foo | d(true) }}</span>
+      <span class="no">bar: {{ bar | d(&#39;yes&#39;) }}</span>
+</pre></div>
+<ul class="simple">
+<li>roles/do_ping/tasks/ping.yml</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="p p-Indicator">-</span> <span class="nt">ping</span><span class="p">:</span>
+<span class="p p-Indicator">-</span> <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Run ping command</span>
+  <span class="nt">shell</span><span class="p">:</span> <span class="p p-Indicator">&gt;-</span>
+    <span class="no">ping -c 3 {{ inventory_hostname }}</span>
+</pre></div>
+<p>ansible-playbook コマンドで --syntax-check し実際に実行しても特に問題はないことがわかります。</p>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 04]$</span> <span class="nb">source</span> .tox/py36/bin/activate
+<span class="go">(py36) [ssato@localhost 04]$ ansible-playbook --syntax-check 40_ping.yml ; echo $?</span>
+
+<span class="go">playbook: 40_ping.yml</span>
+<span class="go">0</span>
+<span class="go">(py36) [ssato@localhost 04]$ ansible-playbook 40_ping.yml</span>
+
+<span class="go">PLAY [localhost] *************************************************************</span>
+
+<span class="go">TASK [Gathering Facts] *******************************************************</span>
+<span class="go">ok: [localhost]</span>
+
+<span class="go">TASK [do_ping : include_tasks] ***********************************************</span>
+<span class="go">included: /tmp/0/04/roles/do_ping/tasks/debug.yml for localhost</span>
+
+<span class="go">TASK [do_ping : debug] *******************************************************</span>
+<span class="go">ok: [localhost] =&gt; {</span>
+<span class="go">    &quot;msg&quot;: &quot;foo: True bar: yes&quot;</span>
+<span class="go">}</span>
+
+<span class="go">TASK [do_ping : include_tasks] ***********************************************</span>
+<span class="go">included: /tmp/0/04/roles/do_ping/tasks/ping.yml for localhost</span>
+
+<span class="go">TASK [do_ping : ping] ********************************************************</span>
+<span class="go">ok: [localhost]</span>
+
+<span class="go">TASK [do_ping : Run ping command] ********************************************</span>
+<span class="go">changed: [localhost]</span>
+
+<span class="go">PLAY RECAP *******************************************************************</span>
+<span class="go">localhost  : ok=6  changed=1  unreachable=0  failed=0  skipped=0  rescued=0  ignored=0</span>
+
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<p>それでは ansible-lint を試してみましょう。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ ansible-lint 40_ping.yml</span>
+<span class="go">WARNING  Listing 3 violation(s) that are fatal</span>
+<span class="go">[502] All tasks should be named</span>
+<span class="go">roles/do_ping/tasks/ping.yml:2</span>
+<span class="go">Task/Handler: ping</span>
+
+<span class="go">[301] Commands should not change things if nothing needs doing</span>
+<span class="go">roles/do_ping/tasks/ping.yml:3</span>
+<span class="go">Task/Handler: Run ping command</span>
+
+<span class="go">[305] Use shell only when shell functionality is required</span>
+<span class="go">roles/do_ping/tasks/ping.yml:3</span>
+<span class="go">Task/Handler: Run ping command</span>
+
+<span class="go">You can skip specific rules or tags by adding them to your configuration file:</span>
+
+<span class="go">┌────────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="go">│ # .ansible-lint                                                                │</span>
+<span class="go">│ warn_list:  # or &#39;skip_list&#39; to silence them completely                        │</span>
+<span class="go">│   - &#39;301&#39;  # Commands should not change things if nothing needs doing          │</span>
+<span class="go">│   - &#39;305&#39;  # Use shell only when shell functionality is required               │</span>
+<span class="go">│   - &#39;502&#39;  # All tasks should be named                                         │</span>
+<span class="go">└────────────────────────────────────────────────────────────────────────────────┘</span>
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<p>いくつか警告が表示されましたが次のように変更して対応できます。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ cp -a roles/do_ping{,_ng}</span>
+<span class="go">(py36) [ssato@localhost 04]$ vi roles/do_ping/tasks/ping.yml</span>
+<span class="go">(py36) [ssato@localhost 04]$ diff -uNr roles/do_ping{_ng,}</span>
+<span class="go">diff -uNr roles/do_ping_ng/tasks/ping.yml roles/do_ping/tasks/ping.yml</span>
+<span class="go">--- roles/do_ping_ng/tasks/ping.yml     2020-12-03 23:45:22.893212088 +0900</span>
+<span class="go">+++ roles/do_ping/tasks/ping.yml        2020-12-03 23:56:31.211030940 +0900</span>
+<span class="go">@@ -1,5 +1,8 @@</span>
+<span class="go"> ---</span>
+<span class="go">-- ping:</span>
+<span class="go">+- name: Run ping module</span>
+<span class="go">+  ping:</span>
+<span class="go">+</span>
+<span class="go"> - name: Run ping command</span>
+<span class="go">-  shell: &gt;-</span>
+<span class="go">+  command: &gt;-</span>
+<span class="go">     ping -c 3 {{ inventory_hostname }}</span>
+<span class="go">+  changed_when: false</span>
+<span class="go">(py36) [ssato@localhost 04]$ ansible-lint 40_ping.yml ; echo $?</span>
+<span class="go">0</span>
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<p>このルールも含めた ansible-lint でチェック可能な標準ルールについては公式文書もあわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/default_rules.html">https://ansible-lint.readthedocs.io/en/latest/default_rules.html</a></li>
+</ul>
+<div class="section" id="id4">
+<h4>ansible-lint のルールの探索パス</h4>
+<p>ansible-lint は default では ansible-lint の python モジュールのインストールパス下から適用するルールを探します。</p>
+<ul class="simple">
+<li>標準ルール rules/ 内の .py*: Python ファイル、ansiblelint.rules.AnsibleLintRule class を継承する class 定義を必ず含み、一つルールを実装</li>
+<li>(plugin 形式の) カスタムルール rules/custom/&lt;plugin_name&gt;/ 内の .py*: 場所が異なることを除き、標準ルールと同じ</li>
+</ul>
+<p>後者については筆者が中心となってこの場所に標準化しました <a class="footnote-reference" href="#id7" id="id5">[1]</a> ので作法に沿って
+python パッケージとして作られた ansible-lint plugin <a class="footnote-reference" href="#id8" id="id6">[2]</a> であればインストールするだけで標準ルールに加えて適用されます。</p>
+<p>ルールの探索パスは -r と -R の二つのコマンド行オプションによって制御できます。
+これらのオプションの組合せによって default に加えてルール探索パスを追加したり、
+default の探索パスは使わず指定のルール探索パスだけを利用したりできます。</p>
+<p>詳細については公式文書も含めてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#specifying-rules-at-runtime">https://ansible-lint.readthedocs.io/en/latest/rules.html#specifying-rules-at-runtime</a></li>
+</ul>
+<table class="docutils footnote" frame="void" id="id7" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[1]</a></td><td><a class="reference external" href="https://github.com/ansible/ansible-lint/pull/935">https://github.com/ansible/ansible-lint/pull/935</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id8" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id6">[2]</a></td><td>カスタムルールの plugin パッケージ化については <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#packaging-custom-rules">https://ansible-lint.readthedocs.io/en/latest/rules.html#packaging-custom-rules</a> を参照。</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id9">
+<h4>ansible-lint のルールの有効化・無効化</h4>
+<p>Ansible-lint は yamllint と違い、通常ルール側で何か特別な設定方法がないかぎりは細かな設定などはできず、無効化できるのみとなります。</p>
+<p>Ansible-lint のルールは各ルールにあらかじめ指定されているタグを使って適用するものを指定したり、除外
+したり、対象ファイルの中でコメントや task 定義の中の tags に
+skip_ansible_lint を指定してスキップ (その部分についてルールを適用しない = 無効化)
+したりできます。
+また .ansible-lint という設定ファイルでも細かな挙動の制御に加えて同様の設定が可能です。</p>
+<p>いずれの設定方法についても公式文書に詳細に説明がありますのでご参照下さい。</p>
+<ul class="simple">
+<li>ansible-lint 実行時にオプションで指定:<ul>
+<li>タグで指定: <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#using-tags-to-include-rules">https://ansible-lint.readthedocs.io/en/latest/rules.html#using-tags-to-include-rules</a></li>
+<li>オプションで除外: <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#excluding-rules">https://ansible-lint.readthedocs.io/en/latest/rules.html#excluding-rules</a></li>
+</ul>
+</li>
+<li>対象ファイル内でルール適用をスキップするように設定 (コメントまたは task 定義の tags で指定): <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#false-positives-skipping-rules">https://ansible-lint.readthedocs.io/en/latest/rules.html#false-positives-skipping-rules</a></li>
+<li>設定ファイルで指定: <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/configuring.html#configuration-file">https://ansible-lint.readthedocs.io/en/latest/configuring.html#configuration-file</a></li>
+</ul>
+<p>なお筆者は default ルールを無効化することはほぼなく、あるとしても局所的に
+tags に skip_ansible_lint を指定するなどで対応しています。
+そしてほとんどの場合 default ルールだけでは十分なチェックとはならず、カスタムルールを実装、パッケージ化し追加しています。</p>
+<p>yamllint の記事でもふれましたが default ルールには ansible 利用者の経験からくる知見に基づく根拠のあるものがつまっています。
+何か警告が出たら設定でとにかくそれを表示させなくするのではなく、まず修正を試みましょう。
+ほとんどの場合ルールによる警告などの指摘は正しく、無効化の必要はないはずです。</p>
+</div>
+<div class="section" id="ansible-lint-ci">
+<h4>ansible-lint によるチェックを CI に組み込む</h4>
+<p>実際、筆者は yamllint と同様に ansible-lint を直接実行することはほぼなく、CI の中か tox (molecule) 経由で実行することがほとんどです。
+おすすめは role のテストも実装し molecule を使う方法ですが、すぐには難しい場合は先にあげた例のように
+tox.ini の commands に列挙されている一部に yamllint . 行を例えば追加し、tox 経由で実行するのが良いでしょう。</p>
+<p>tox 経由で実行されるようにしてあれば yamllint と同様に意識することなく CI または tox 実行で一緒に実行されるようにできます。</p>
+<p>また公式文書で示されているように pre-commit を使うのも良いでしょう</p>
+<ul class="simple">
+<li><a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/configuring.html#pre-commit-setup">https://ansible-lint.readthedocs.io/en/latest/configuring.html#pre-commit-setup</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="section" id="id10">
+<h2>次回予告</h2>
+<p>次回の記事までは少し期間が空くかもしれませんが Ansible Lint のカスタムルール実装の方法とパッケージ化の実際について簡単な説明を予定しています。</p>
+<!-- vim:sw=2:ts=2:et: -->
+</div>
+</div>
+	</div>
+		<footer>
+		  <p>Powered by <a href="http://getpelican.com/">Pelican</a>. Theme based on <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a>.</p>
+		  <p>&copy; Satoru SATOH</p>
+		</footer>
+	  </div>
+
+	</div>
+</body>
+</html>

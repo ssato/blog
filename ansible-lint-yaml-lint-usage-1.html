@@ -58,8 +58,8 @@
 	  </div>
 	  <div class="content">
 	<div class='article'>
-		<div class="page-header"><h1>Ansible Lint と YAML Lint の話 - 使い方編</h1></div>
-		<div class="well small">Permalink: <a class="more" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage-1.html">2020-12-02 00:01:00+09:00</a>
+		<div class="page-header"><h1>Ansible Lint と YAML Lint の話 - 使い方編 (1)</h1></div>
+		<div class="well small">Permalink: <a class="more" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage-1.html">2020-12-03 00:01:00+09:00</a>
 by <a class="url fn" href="https://ssato.github.io/blog/author/satoru-satoh.html">Satoru SATOH </a>
  in <a href="https://ssato.github.io/blog/category/ansible.html">ansible</a>
 tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a href="https://ssato.github.io/blog/tag/lint.html">lint</a> </div>
@@ -86,9 +86,9 @@ tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a hre
 <p>yamllint は pip でインストールできます。
 前回記事でふれた tox で試してみましょう。</p>
 <p>前準備として次のような tox.ini と tox 内で参照する requirements.txt というファイルを用意しておきます。</p>
-<div class="highlight"><pre><span></span><span class="gp">[ssato@x1-carbon-gen6 03]$</span> cat requirements.txt
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 03]$</span> cat requirements.txt
 <span class="go">yamllint</span>
-<span class="gp">[ssato@x1-carbon-gen6 03]$</span> cat tox.ini
+<span class="gp">[ssato@localhost 03]$</span> cat tox.ini
 <span class="go">[tox]</span>
 <span class="go">envlist = py36</span>
 <span class="go">skipsdist = true</span>
@@ -99,10 +99,10 @@ tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a hre
 <span class="go">commands =</span>
 <span class="go">    yamllint --version</span>
 <span class="go">    yamllint --help</span>
-<span class="gp">[ssato@x1-carbon-gen6 03]$</span>
+<span class="gp">[ssato@localhost 03]$</span>
 </pre></div>
 <p>tox を使って一旦 yamllint をインストール、ヘルプを表示してみましょう。</p>
-<div class="highlight"><pre><span></span><span class="gp">[ssato@x1-carbon-gen6 03]$</span> tox
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 03]$</span> tox
 <span class="go">py36 create: /tmp/0/03/.tox/py36</span>
 <span class="go">py36 installdeps: -r/tmp/0/03/requirements.txt</span>
 <span class="go">py36 installed: pathspec==0.8.1,PyYAML==5.3.1,yamllint==1.25.0</span>
@@ -138,14 +138,14 @@ tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a hre
 <span class="go">______________________________________ summary _________________________________</span>
 <span class="go">  py36: commands succeeded</span>
 <span class="go">  congratulations :)</span>
-<span class="gp">[ssato@x1-carbon-gen6 03]$</span>
+<span class="gp">[ssato@localhost 03]$</span>
 </pre></div>
 <p>yamllint の対象ファイルはファイルまたはディレクトリを指定して実行します。
 ディレクトリを指定した場合はそのディレクトリ下の指定のパターン <a class="footnote-reference" href="#id6" id="id4">[1]</a> に一致する
 YAML ファイルすべてを再帰的に読込み <a class="footnote-reference" href="#id7" id="id5">[2]</a> 、lint を行ないます。</p>
 <p>yamllint をより実践的に試すために Ansible Playbook を用意してみましょう。
 内容的にあまり意味はないのですがサンプルとして次のようなものを用意してみます。</p>
-<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cat 00_ping.yml</span>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 03]$ cat 00_ping.yml</span>
 <span class="go">- hosts: localhost</span>
 <span class="go">  vars:</span>
 <span class="go">    foo: true</span>
@@ -164,13 +164,13 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="go">          - &#39;!all&#39;</span>
 <span class="go">          - &#39;!any&#39;</span>
 <span class="go">          - facter</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+<span class="go">(py36) [ssato@localhost 03]$</span>
 </pre></div>
 <p>ansible-playbook コマンドで --syntax-check し実際に実行しても特に問題はないことがわかります。</p>
-<div class="highlight"><pre><span></span><span class="gp">[ssato@x1-carbon-gen6 03]$</span> ansible-playbook --syntax-check 00_ping.yml
+<div class="highlight"><pre><span></span><span class="gp">[ssato@localhost 03]$</span> ansible-playbook --syntax-check 00_ping.yml
 
 <span class="go">playbook: 00_ping.yml</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ ansible-playbook 00_ping.yml</span>
+<span class="go">(py36) [ssato@localhost 03]$ ansible-playbook 00_ping.yml</span>
 
 <span class="go">PLAY [localhost] ***********************************************************</span>
 
@@ -191,20 +191,20 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="go">PLAY RECAP *****************************************************************</span>
 <span class="go">localhost                  : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0</span>
 
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+<span class="go">(py36) [ssato@localhost 03]$</span>
 </pre></div>
 <p>tox が用意してくれた .tox/ 下にある virutualenv 環境をそのまま使って yamllint を試してみましょう。</p>
-<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml</span>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 03]$ yamllint 00_ping.yml</span>
 <span class="go">00_ping.yml</span>
 <span class="go">  1:1       warning  missing document start &quot;---&quot;  (document-start)</span>
 <span class="go">  4:10      warning  truthy value should be one of [false, true]  (truthy)</span>
 
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+<span class="go">(py36) [ssato@localhost 03]$</span>
 </pre></div>
 <p>何やら二つ警告が表示されましたが次のように変更して修正できます。</p>
-<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml{,.save}</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ vi 00_ping.yml</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ diff -u 00_ping.yml{.save,}</span>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 03]$ cp 00_ping.yml{,.save}</span>
+<span class="go">(py36) [ssato@localhost 03]$ vi 00_ping.yml</span>
+<span class="go">(py36) [ssato@localhost 03]$ diff -u 00_ping.yml{.save,}</span>
 <span class="go">--- 00_ping.yml.save    2020-12-03 17:33:39.468022456 +0900</span>
 <span class="go">+++ 00_ping.yml 2020-12-03 17:34:24.308412871 +0900</span>
 <span class="go">@@ -1,7 +1,8 @@</span>
@@ -217,9 +217,9 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="go">   tasks:</span>
 <span class="go">     - debug:</span>
 <span class="go">         msg: &gt;-</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml; echo $?</span>
+<span class="go">(py36) [ssato@localhost 03]$ yamllint 00_ping.yml; echo $?</span>
 <span class="go">0</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+<span class="go">(py36) [ssato@localhost 03]$</span>
 </pre></div>
 <p>このルールも含めた yamllint でチェック可能な標準ルールについては公式文書もあわせてご参照下さい。</p>
 <ul class="simple">
@@ -253,7 +253,7 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <p>以下では、順番にそれぞれの設定方法で対応する例をあげていきます。</p>
 <p>yamllint の設定ファイル .yamllint で対象ファイルによらずグローバルに設定可能です。
 例えば先の yamllint で警告が表示されたファイルについてルールを緩和、無効化することで警告が出なくなります。</p>
-<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cat .yamllint</span>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 03]$ cat .yamllint</span>
 <span class="gp">#</span> おまじない <span class="o">(</span>デフォルトの設定をそのまま活用し、一部のみ上書き変更する<span class="o">)</span>
 <span class="go">extends: default</span>
 
@@ -273,17 +273,17 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="gp">  #</span> 真偽値として解釈される値を制限するルールを緩和する設定:
 <span class="go">  truthy:</span>
 <span class="go">    allowed-values: [&#39;true&#39;, &#39;false&#39;, &#39;yes&#39;]</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.save ; echo $?</span>
+<span class="go">(py36) [ssato@localhost 03]$ yamllint 00_ping.yml.save ; echo $?</span>
 <span class="go">0</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+<span class="go">(py36) [ssato@localhost 03]$</span>
 </pre></div>
 <p>なおこの設定ファイルによる設定方法は、すべての対象ファイルについてルールを緩和、無効化することとなり、やや乱暴な方法ではあります。
 そういうわけで、筆者は基本的にはこの方法はおすすめしていません。</p>
 <p>次に対象のファイル毎に設定する例ですが次のようにして対応できます。</p>
-<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ rm .yamllint</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml.save   00_ping.yml.config_by_comments</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ vi 00_ping.yml.config_by_comments</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ diff -u 00_ping.yml.{save,config_by_comments}</span>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 03]$ rm .yamllint</span>
+<span class="go">(py36) [ssato@localhost 03]$ cp 00_ping.yml.save   00_ping.yml.config_by_comments</span>
+<span class="go">(py36) [ssato@localhost 03]$ vi 00_ping.yml.config_by_comments</span>
+<span class="go">(py36) [ssato@localhost 03]$ diff -u 00_ping.yml.{save,config_by_comments}</span>
 <span class="go">--- 00_ping.yml.save    2020-12-03 17:33:39.468022456 +0900</span>
 <span class="go">+++ 00_ping.yml.config_by_comments      2020-12-03 20:24:22.383204640 +0900</span>
 <span class="go">@@ -1,6 +1,8 @@</span>
@@ -295,8 +295,8 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="go">     bar: yes</span>
 <span class="go">   tasks:</span>
 <span class="go">     - debug:</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.config_by_comments</span>
-<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+<span class="go">(py36) [ssato@localhost 03]$ yamllint 00_ping.yml.config_by_comments</span>
+<span class="go">(py36) [ssato@localhost 03]$</span>
 </pre></div>
 </div>
 <div class="section" id="id9">
