@@ -1,4 +1,4 @@
-Ansible Lint と YAML Lint の話 - 使い方編 (2)
+Ansible Lint と yamllint の話 - 使い方編 (2)
 ##############################################
 
 :date: 2020-12-04 00:44
@@ -7,7 +7,7 @@ Ansible Lint と YAML Lint の話 - 使い方編 (2)
 :category: ansible
 :slug: ansible-lint-yaml-lint-usage-2
 :authors: Satoru SATOH
-:summary: Ansible Lint と YAML Lint の話 - 使い方編 (2)
+:summary: Ansible Lint と yamllint の話 - 使い方編 (2)
 :status: published
 
 What's this?
