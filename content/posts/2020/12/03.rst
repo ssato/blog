@@ -1,0 +1,293 @@
+Ansible Lint と YAML Lint の話 - 使い方編
+############################################
+
+:date: 2020-12-02 00:01
+:modified: 2020-12-02 00:01
+:tags: ansible, lint
+:category: ansible
+:slug: ansible-lint-yaml-lint-usage
+:authors: Satoru SATOH
+:summary: Ansible Lint と YAML Lint の話 - 使い方編 (1)
+:status: published
+
+What's this?
+=============
+
+これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。
+
+- https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
+- https://adventar.org/calendars/5719
+
+Lint を使ってみよう
+=====================
+
+`前々回記事 <{filename}01.rst>`_ では Lint がどういうものでなぜ必要かを簡単に紹介しました。
+本記事では Ansible Playbook について利用できる代表的な Lint ツールについて使い方を簡単に紹介します。
+
+前準備
+----------
+
+ツールの導入を簡単にするために以降では `前回記事 <{filename}02.rst>`_  でふれた tox というツールの利用を前提としています。
+この記事に書かれていることを試したりする際はまず tox をご用意下さい。
+
+yamllint を使ってみよう
+------------------------------
+
+yamllint は pip でインストールできます。
+前回記事でふれた tox で試してみましょう。
+
+前準備として次のような tox.ini と tox 内で参照する requirements.txt というファイルを用意しておきます。
+
+.. code-block:: console
+
+  [ssato@x1-carbon-gen6 03]$ cat requirements.txt
+  yamllint
+  [ssato@x1-carbon-gen6 03]$ cat tox.ini
+  [tox]
+  envlist = py36
+  skipsdist = true
+
+  [testenv]
+  deps =
+      -r {toxinidir}/requirements.txt
+  commands =
+      yamllint --version
+      yamllint --help
+  [ssato@x1-carbon-gen6 03]$
+
+tox を使って一旦 yamllint をインストール、ヘルプを表示してみましょう。
+
+.. code-block:: console
+
+  [ssato@x1-carbon-gen6 03]$ tox
+  py36 create: /tmp/0/03/.tox/py36
+  py36 installdeps: -r/tmp/0/03/requirements.txt
+  py36 installed: pathspec==0.8.1,PyYAML==5.3.1,yamllint==1.25.0
+  py36 run-test-pre: PYTHONHASHSEED='1153836027'
+  py36 run-test: commands[0] | yamllint --version
+  yamllint 1.25.0
+  py36 run-test: commands[1] | yamllint --help
+  usage: yamllint [-h] [-] [-c CONFIG_FILE | -d CONFIG_DATA]
+                  [-f {parsable,standard,colored,github,auto}] [-s]
+                  [--no-warnings] [-v]
+                  [FILE_OR_DIR [FILE_OR_DIR ...]]
+
+  A linter for YAML files. yamllint does not only check for syntax validity, but
+  for weirdnesses like key repetition and cosmetic problems such as lines
+  length, trailing spaces, indentation, etc.
+
+  positional arguments:
+    FILE_OR_DIR           files to check
+
+  optional arguments:
+    -h, --help            show this help message and exit
+    -                     read from standard input
+    -c CONFIG_FILE, --config-file CONFIG_FILE
+                          path to a custom configuration
+    -d CONFIG_DATA, --config-data CONFIG_DATA
+                          custom configuration (as YAML source)
+    -f {parsable,standard,colored,github,auto}, --format {parsable,standard,colored,github,auto}
+                          format for parsing output
+    -s, --strict          return non-zero exit code on warnings as well as
+                          errors
+    --no-warnings         output only error level problems
+    -v, --version         show program's version number and exit
+  ______________________________________ summary _________________________________
+    py36: commands succeeded
+    congratulations :)
+  [ssato@x1-carbon-gen6 03]$
+
+yamllint の対象ファイルはファイルまたはディレクトリを指定して実行します。
+ディレクトリを指定した場合はそのディレクトリ下の指定のパターン [#]_ に一致する
+YAML ファイルすべてを再帰的に読込み [#]_ 、lint を行ないます。
+
+yamllint をより実践的に試すために Ansible Playbook を用意してみましょう。
+内容的にあまり意味はないのですがサンプルとして次のようなものを用意してみます。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 03]$ cat 00_ping.yml
+  - hosts: localhost
+    vars:
+      foo: true
+      bar: yes
+    tasks:
+      - debug:
+          msg: >-
+            foo: {{ foo }}
+            bar: {{ bar }}
+
+      - ping:
+
+      - name: Collect only facts returned by facter
+        setup:
+          gather_subset:
+            - '!all'
+            - '!any'
+            - facter
+  (py36) [ssato@x1-carbon-gen6 03]$
+
+ansible-playbook コマンドで --syntax-check し実際に実行しても特に問題はないことがわかります。
+
+.. code-block:: console
+
+  [ssato@x1-carbon-gen6 03]$ ansible-playbook --syntax-check 00_ping.yml
+
+  playbook: 00_ping.yml
+  (py36) [ssato@x1-carbon-gen6 03]$ ansible-playbook 00_ping.yml
+
+  PLAY [localhost] ***********************************************************
+
+  TASK [Gathering Facts] *****************************************************
+  ok: [localhost]
+
+  TASK [debug] ***************************************************************
+  ok: [localhost] => {
+        "msg": "foo: True bar: True"
+  }
+
+  TASK [ping] ****************************************************************
+  ok: [localhost]
+
+  TASK [Collect only facts returned by facter] *******************************
+  ok: [localhost]
+
+  PLAY RECAP *****************************************************************
+  localhost                  : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+  (py36) [ssato@x1-carbon-gen6 03]$
+
+tox が用意してくれた .tox/ 下にある virutualenv 環境をそのまま使って yamllint を試してみましょう。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml
+  00_ping.yml
+    1:1       warning  missing document start "---"  (document-start)
+    4:10      warning  truthy value should be one of [false, true]  (truthy)
+
+  (py36) [ssato@x1-carbon-gen6 03]$
+
+何やら二つ警告が表示されましたが次のように変更して修正できます。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml{,.save}
+  (py36) [ssato@x1-carbon-gen6 03]$ vi 00_ping.yml
+  (py36) [ssato@x1-carbon-gen6 03]$ diff -u 00_ping.yml{.save,}
+  --- 00_ping.yml.save    2020-12-03 17:33:39.468022456 +0900
+  +++ 00_ping.yml 2020-12-03 17:34:24.308412871 +0900
+  @@ -1,7 +1,8 @@
+  +---
+   - hosts: localhost
+     vars:
+       foo: true
+  -    bar: yes
+  +    bar: "yes"  # または true (真偽値にしたい場合) に変更
+     tasks:
+       - debug:
+           msg: >-
+  (py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml; echo $?
+  0
+  (py36) [ssato@x1-carbon-gen6 03]$
+
+このルールも含めた yamllint でチェック可能な標準ルールについては公式文書もあわせてご参照下さい。
+
+- https://yamllint.readthedocs.io/en/stable/rules.html
+
+.. [#] デフォルトでは .yaml, .yml などで終るファイル: https://github.com/adrienverge/yamllint/blob/master/yamllint/config.py#L36
+.. [#] https://github.com/adrienverge/yamllint/blob/master/yamllint/cli.py#L202 や https://github.com/adrienverge/yamllint/blob/master/yamllint/cli.py#L32 等
+
+yamllint の設定
+^^^^^^^^^^^^^^^^^^
+
+yamllint の標準ルールをそのまま適用してすべてパスすれば一番良いのですが現実には難しい場合もあるでしょう。
+その場合は特定のルールを無効化するか、ルール毎の細かな設定で対応します。対応方法には大きく二種類あります。
+
+- 設定ファイルでグローバルに設定
+- 対象ファイルについてファイル全体またはファイルの行単位で設定
+
+それぞれ公式文書に明解な説明がありますのでまずはそちらをご参照下さい。
+
+- https://yamllint.readthedocs.io/en/stable/configuration.html
+- https://yamllint.readthedocs.io/en/stable/disable_with_comments.html
+
+以下では、順番にそれぞれの設定方法で対応する例をあげていきます。
+
+yamllint の設定ファイル .yamllint で対象ファイルによらずグローバルに設定可能です。
+例えば先の yamllint で警告が表示されたファイルについてルールを緩和、無効化することで警告が出なくなります。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 03]$ cat .yamllint
+  # おまじない (デフォルトの設定をそのまま活用し、一部のみ上書き変更する)
+  extends: default
+
+  # 特定のパスパターンのファイルを検証対象から外す場合
+  # ignore: |
+  #   *.molecule/
+  #   .tox
+
+  rules:
+    # 文書の開始行をチェックするルールを無効化:
+    document-start: disable
+
+    # 一行の中に含まれる文字数の制限のルールを緩和:
+    line-length:
+      max: 120
+
+    # 真偽値として解釈される値を制限するルールを緩和する設定:
+    truthy:
+      allowed-values: ['true', 'false', 'yes']
+  (py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.save ; echo $?
+  0
+  (py36) [ssato@x1-carbon-gen6 03]$
+
+なおこの設定ファイルによる設定方法は、すべての対象ファイルについてルールを緩和、無効化することとなり、やや乱暴な方法ではあります。
+そういうわけで、筆者は基本的にはこの方法はおすすめしていません [#]_ 。
+
+次に対象のファイル毎に設定する例ですが次のようにして対応できます。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 03]$ rm .yamllint
+  (py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml.save   00_ping.yml.config_by_comments
+  (py36) [ssato@x1-carbon-gen6 03]$ vi 00_ping.yml.config_by_comments
+  (py36) [ssato@x1-carbon-gen6 03]$ diff -u 00_ping.yml.{save,config_by_comments}
+  --- 00_ping.yml.save    2020-12-03 17:33:39.468022456 +0900
+  +++ 00_ping.yml.config_by_comments      2020-12-03 20:24:22.383204640 +0900
+  @@ -1,6 +1,8 @@
+  +# yamllint disable rule:document-start
+   - hosts: localhost
+     vars:
+       foo: true
+  +    # yamllint disable-line rule:truthy
+       bar: yes
+     tasks:
+       - debug:
+  (py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.config_by_comments
+  (py36) [ssato@x1-carbon-gen6 03]$
+
+.. [#] なお巷では警告が消えたという結果だけをもって短絡的にこの方法をとっている場合もなくはないようですが、自分が何をしているか、なぜそうしなければならないか理由をよく考え、明確にした上でそうすることをおすすめします。
+
+yamllint によるチェックを CI に組み込む
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+実際、筆者は yamllint を直接実行することはほぼなく、CI の中か tox (molecule) 経由で実行することがほとんどです。
+おすすめは role のテストも実装し molecule を使う方法ですが、すぐには難しい場合は先にあげた例のように
+tox.ini の commands に列挙されている一部に yamllint . 行を例えば追加し、tox 経由で実行するのが良いでしょう。
+
+tox 経由で実行されるようにしてあればあとは意識することなく CI または tox 実行で一緒に実行されるようにできます。
+
+Ansible Lint を使ってみよう
+------------------------------
+
+予定していたのと異なり申し訳ないですが、当初の見込みよりも yamllint だけで結構な量になってしまったので明日以降にします。
+
+次回予告
+===================
+
+次回は今日の続きで実際に Ansible Lint をどう使っていくのか実例を示しながら簡単に紹介する予定です。
+
+.. vim:sw=2:ts=2:et:
