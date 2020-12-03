@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ssato's blog</title>
+	<meta name="description" content="">
+	<meta name="author" content="Satoru SATOH">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML elements -->
+	<!--[if lt IE 9]>
+		<script src="https://ssato.github.io/blog/theme/html5.js"></script>
+	<![endif]-->
+
+	<!-- Styles -->
+	<link href="https://ssato.github.io/blog/theme/bootstrap.min.css" rel="stylesheet">
+	<link href="https://ssato.github.io/blog/theme/local.css" rel="stylesheet">
+	<link href="https://ssato.github.io/blog/theme/pygments.css" rel="stylesheet">
+
+	<!-- Feeds -->
+	<link href="https://ssato.github.io/blog/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="ssato's blog Atom Feed" />
+
+
+
+
+</head>
+<body>
+	<div class="topbar">
+	  <div class="topbar-inner">
+		<div class="container-fluid">
+		  <a class="brand" href="https://ssato.github.io/blog/">ssato's blog</a>
+			<ul class="nav">
+					<li class="active"><a href="https://ssato.github.io/blog/category/ansible.html">ansible</a></li>
+					<li ><a href="https://ssato.github.io/blog/category/python.html">python</a></li>
+			</ul>
+			<p class="pull-right"><a href="https://ssato.github.io/blog/archives.html">[archives]</a> <a href="https://ssato.github.io/blog/tags.html">[tags]</a></p>
+		</div>
+	  </div>
+	</div>
+
+	<div class="container-fluid">
+	  <div class="sidebar">
+		<div class="well">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://getpelican.com/">Pelican</a></li>
+				<li><a href="http://python.org/">Python.org</a></li>
+				<li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+			</ul>
+			<div class="social">
+			<h3>Social</h3>
+			<ul>
+				<li><a href="https://github.com/ssato/">Github</a></li>
+				<li><a href="https://www.instagram.com/satoh.satoru/">Instagram</a></li>
+				<li><a href="https://twitter.com/satoru_satoh">Twitter</a></li>
+			</ul>
+			</div>
+		</div>
+	  </div>
+	  <div class="content">
+	<div class='article'>
+		<div class="page-header"><h1>Ansible Lint と YAML Lint の話 - 使い方編</h1></div>
+		<div class="well small">Permalink: <a class="more" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage.html">2020-12-02 00:01:00+09:00</a>
+by <a class="url fn" href="https://ssato.github.io/blog/author/satoru-satoh.html">Satoru SATOH </a>
+ in <a href="https://ssato.github.io/blog/category/ansible.html">ansible</a>
+tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a href="https://ssato.github.io/blog/tag/lint.html">lint</a> </div>
+		<div><div class="section" id="what-s-this">
+<h2>What's this?</h2>
+<p>これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://qiita.com/advent-calendar/2020/ansible_01">https://qiita.com/advent-calendar/2020/ansible_01</a> (Qiita のみ)</li>
+<li><a class="reference external" href="https://adventar.org/calendars/5719">https://adventar.org/calendars/5719</a></li>
+</ul>
+</div>
+<div class="section" id="lint">
+<h2>Lint を使ってみよう</h2>
+<p><a class="reference external" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-intro.html">前々回記事</a> では Lint がどういうものでなぜ必要かを簡単に紹介しました。
+本記事では Ansible Playbook について利用できる代表的な Lint ツールについて使い方を簡単に紹介します。</p>
+<div class="section" id="id2">
+<h3>前準備</h3>
+<p>ツールの導入を簡単にするために以降では <a class="reference external" href="https://ssato.github.io/blog/recommend-to-use-tox.html">前回記事</a>  でふれた tox というツールの利用を前提としています。
+この記事に書かれていることを試したりする際はまず tox をご用意下さい。</p>
+</div>
+<div class="section" id="yamllint">
+<h3>yamllint を使ってみよう</h3>
+<p>yamllint は pip でインストールできます。
+前回記事でふれた tox で試してみましょう。</p>
+<p>前準備として次のような tox.ini と tox 内で参照する requirements.txt というファイルを用意しておきます。</p>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@x1-carbon-gen6 03]$</span> cat requirements.txt
+<span class="go">yamllint</span>
+<span class="gp">[ssato@x1-carbon-gen6 03]$</span> cat tox.ini
+<span class="go">[tox]</span>
+<span class="go">envlist = py36</span>
+<span class="go">skipsdist = true</span>
+
+<span class="go">[testenv]</span>
+<span class="go">deps =</span>
+<span class="go">    -r {toxinidir}/requirements.txt</span>
+<span class="go">commands =</span>
+<span class="go">    yamllint --version</span>
+<span class="go">    yamllint --help</span>
+<span class="gp">[ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>tox を使って一旦 yamllint をインストール、ヘルプを表示してみましょう。</p>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@x1-carbon-gen6 03]$</span> tox
+<span class="go">py36 create: /tmp/0/03/.tox/py36</span>
+<span class="go">py36 installdeps: -r/tmp/0/03/requirements.txt</span>
+<span class="go">py36 installed: pathspec==0.8.1,PyYAML==5.3.1,yamllint==1.25.0</span>
+<span class="go">py36 run-test-pre: PYTHONHASHSEED=&#39;1153836027&#39;</span>
+<span class="go">py36 run-test: commands[0] | yamllint --version</span>
+<span class="go">yamllint 1.25.0</span>
+<span class="go">py36 run-test: commands[1] | yamllint --help</span>
+<span class="go">usage: yamllint [-h] [-] [-c CONFIG_FILE | -d CONFIG_DATA]</span>
+<span class="go">                [-f {parsable,standard,colored,github,auto}] [-s]</span>
+<span class="go">                [--no-warnings] [-v]</span>
+<span class="go">                [FILE_OR_DIR [FILE_OR_DIR ...]]</span>
+
+<span class="go">A linter for YAML files. yamllint does not only check for syntax validity, but</span>
+<span class="go">for weirdnesses like key repetition and cosmetic problems such as lines</span>
+<span class="go">length, trailing spaces, indentation, etc.</span>
+
+<span class="go">positional arguments:</span>
+<span class="go">  FILE_OR_DIR           files to check</span>
+
+<span class="go">optional arguments:</span>
+<span class="go">  -h, --help            show this help message and exit</span>
+<span class="go">  -                     read from standard input</span>
+<span class="go">  -c CONFIG_FILE, --config-file CONFIG_FILE</span>
+<span class="go">                        path to a custom configuration</span>
+<span class="go">  -d CONFIG_DATA, --config-data CONFIG_DATA</span>
+<span class="go">                        custom configuration (as YAML source)</span>
+<span class="go">  -f {parsable,standard,colored,github,auto}, --format {parsable,standard,colored,github,auto}</span>
+<span class="go">                        format for parsing output</span>
+<span class="go">  -s, --strict          return non-zero exit code on warnings as well as</span>
+<span class="go">                        errors</span>
+<span class="go">  --no-warnings         output only error level problems</span>
+<span class="go">  -v, --version         show program&#39;s version number and exit</span>
+<span class="go">______________________________________ summary _________________________________</span>
+<span class="go">  py36: commands succeeded</span>
+<span class="go">  congratulations :)</span>
+<span class="gp">[ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>yamllint の対象ファイルはファイルまたはディレクトリを指定して実行します。
+ディレクトリを指定した場合はそのディレクトリ下の指定のパターン <a class="footnote-reference" href="#id6" id="id4">[1]</a> に一致する
+YAML ファイルすべてを再帰的に読込み <a class="footnote-reference" href="#id7" id="id5">[2]</a> 、lint を行ないます。</p>
+<p>yamllint をより実践的に試すために Ansible Playbook を用意してみましょう。
+内容的にあまり意味はないのですがサンプルとして次のようなものを用意してみます。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cat 00_ping.yml</span>
+<span class="go">- hosts: localhost</span>
+<span class="go">  vars:</span>
+<span class="go">    foo: true</span>
+<span class="go">    bar: yes</span>
+<span class="go">  tasks:</span>
+<span class="go">    - debug:</span>
+<span class="go">        msg: &gt;-</span>
+<span class="go">          foo: {{ foo }}</span>
+<span class="go">          bar: {{ bar }}</span>
+
+<span class="go">    - ping:</span>
+
+<span class="go">    - name: Collect only facts returned by facter</span>
+<span class="go">      setup:</span>
+<span class="go">        gather_subset:</span>
+<span class="go">          - &#39;!all&#39;</span>
+<span class="go">          - &#39;!any&#39;</span>
+<span class="go">          - facter</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>ansible-playbook コマンドで --syntax-check し実際に実行しても特に問題はないことがわかります。</p>
+<div class="highlight"><pre><span></span><span class="gp">[ssato@x1-carbon-gen6 03]$</span> ansible-playbook --syntax-check 00_ping.yml
+
+<span class="go">playbook: 00_ping.yml</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ ansible-playbook 00_ping.yml</span>
+
+<span class="go">PLAY [localhost] ***********************************************************</span>
+
+<span class="go">TASK [Gathering Facts] *****************************************************</span>
+<span class="go">ok: [localhost]</span>
+
+<span class="go">TASK [debug] ***************************************************************</span>
+<span class="go">ok: [localhost] =&gt; {</span>
+<span class="go">      &quot;msg&quot;: &quot;foo: True bar: True&quot;</span>
+<span class="go">}</span>
+
+<span class="go">TASK [ping] ****************************************************************</span>
+<span class="go">ok: [localhost]</span>
+
+<span class="go">TASK [Collect only facts returned by facter] *******************************</span>
+<span class="go">ok: [localhost]</span>
+
+<span class="go">PLAY RECAP *****************************************************************</span>
+<span class="go">localhost                  : ok=4    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0</span>
+
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>tox が用意してくれた .tox/ 下にある virutualenv 環境をそのまま使って yamllint を試してみましょう。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml</span>
+<span class="go">00_ping.yml</span>
+<span class="go">  1:1       warning  missing document start &quot;---&quot;  (document-start)</span>
+<span class="go">  4:10      warning  truthy value should be one of [false, true]  (truthy)</span>
+
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>何やら二つ警告が表示されましたが次のように変更して修正できます。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml{,.save}</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ vi 00_ping.yml</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ diff -u 00_ping.yml{.save,}</span>
+<span class="go">--- 00_ping.yml.save    2020-12-03 17:33:39.468022456 +0900</span>
+<span class="go">+++ 00_ping.yml 2020-12-03 17:34:24.308412871 +0900</span>
+<span class="go">@@ -1,7 +1,8 @@</span>
+<span class="go">+---</span>
+<span class="go"> - hosts: localhost</span>
+<span class="go">   vars:</span>
+<span class="go">     foo: true</span>
+<span class="go">-    bar: yes</span>
+<span class="go">+    bar: &quot;yes&quot;  # または true (真偽値にしたい場合) に変更</span>
+<span class="go">   tasks:</span>
+<span class="go">     - debug:</span>
+<span class="go">         msg: &gt;-</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml; echo $?</span>
+<span class="go">0</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>このルールも含めた yamllint でチェック可能な標準ルールについては公式文書もあわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://yamllint.readthedocs.io/en/stable/rules.html">https://yamllint.readthedocs.io/en/stable/rules.html</a></li>
+</ul>
+<table class="docutils footnote" frame="void" id="id6" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[1]</a></td><td>デフォルトでは .yaml, .yml などで終るファイル: <a class="reference external" href="https://github.com/adrienverge/yamllint/blob/master/yamllint/config.py#L36">https://github.com/adrienverge/yamllint/blob/master/yamllint/config.py#L36</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="id7" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[2]</a></td><td><a class="reference external" href="https://github.com/adrienverge/yamllint/blob/master/yamllint/cli.py#L202">https://github.com/adrienverge/yamllint/blob/master/yamllint/cli.py#L202</a> や <a class="reference external" href="https://github.com/adrienverge/yamllint/blob/master/yamllint/cli.py#L32">https://github.com/adrienverge/yamllint/blob/master/yamllint/cli.py#L32</a> 等</td></tr>
+</tbody>
+</table>
+<div class="section" id="id8">
+<h4>yamllint の設定</h4>
+<p>yamllint の標準ルールをそのまま適用してすべてパスすれば一番良いのですが現実には難しい場合もあるでしょう。
+その場合は特定のルールを無効化するか、ルール毎の細かな設定で対応します。対応方法には大きく二種類あります。</p>
+<ul class="simple">
+<li>設定ファイルでグローバルに設定</li>
+<li>対象ファイルについてファイル全体またはファイルの行単位で設定</li>
+</ul>
+<p>それぞれ公式文書に明解な説明がありますのでまずはそちらをご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://yamllint.readthedocs.io/en/stable/configuration.html">https://yamllint.readthedocs.io/en/stable/configuration.html</a></li>
+<li><a class="reference external" href="https://yamllint.readthedocs.io/en/stable/disable_with_comments.html">https://yamllint.readthedocs.io/en/stable/disable_with_comments.html</a></li>
+</ul>
+<p>以下では、順番にそれぞれの設定方法で対応する例をあげていきます。</p>
+<p>yamllint の設定ファイル .yamllint で対象ファイルによらずグローバルに設定可能です。
+例えば先の yamllint で警告が表示されたファイルについてルールを緩和、無効化することで警告が出なくなります。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cat .yamllint</span>
+<span class="gp">#</span> おまじない <span class="o">(</span>デフォルトの設定をそのまま活用し、一部のみ上書き変更する<span class="o">)</span>
+<span class="go">extends: default</span>
+
+<span class="gp">#</span> 特定のパスパターンのファイルを検証対象から外す場合
+<span class="gp">#</span> ignore: <span class="p">|</span>
+<span class="gp">#</span>   *.molecule/
+<span class="gp">#</span>   .tox
+
+<span class="go">rules:</span>
+<span class="gp">  #</span> 文書の開始行をチェックするルールを無効化:
+<span class="go">  document-start: disable</span>
+
+<span class="gp">  #</span> 一行の中に含まれる文字数の制限のルールを緩和:
+<span class="go">  line-length:</span>
+<span class="go">    max: 120</span>
+
+<span class="gp">  #</span> 真偽値として解釈される値を制限するルールを緩和する設定:
+<span class="go">  truthy:</span>
+<span class="go">    allowed-values: [&#39;true&#39;, &#39;false&#39;, &#39;yes&#39;]</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.save ; echo $?</span>
+<span class="go">0</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<p>なおこの設定ファイルによる設定方法は、すべての対象ファイルについてルールを緩和、無効化することとなり、やや乱暴な方法ではあります。
+そういうわけで、筆者は基本的にはこの方法はおすすめしていません <a class="footnote-reference" href="#id10" id="id9">[3]</a> 。</p>
+<p>次に対象のファイル毎に設定する例ですが次のようにして対応できます。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ rm .yamllint</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml.save   00_ping.yml.config_by_comments</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ vi 00_ping.yml.config_by_comments</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ diff -u 00_ping.yml.{save,config_by_comments}</span>
+<span class="go">--- 00_ping.yml.save    2020-12-03 17:33:39.468022456 +0900</span>
+<span class="go">+++ 00_ping.yml.config_by_comments      2020-12-03 20:24:22.383204640 +0900</span>
+<span class="go">@@ -1,6 +1,8 @@</span>
+<span class="go">+# yamllint disable rule:document-start</span>
+<span class="go"> - hosts: localhost</span>
+<span class="go">   vars:</span>
+<span class="go">     foo: true</span>
+<span class="go">+    # yamllint disable-line rule:truthy</span>
+<span class="go">     bar: yes</span>
+<span class="go">   tasks:</span>
+<span class="go">     - debug:</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.config_by_comments</span>
+<span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
+</pre></div>
+<table class="docutils footnote" frame="void" id="id10" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id9">[3]</a></td><td>なお巷では警告が消えたという結果だけをもって短絡的にこの方法をとっている場合もなくはないようですが、自分が何をしているか、なぜそうしなければならないか理由をよく考え、明確にした上でそうすることをおすすめします。</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="yamllint-ci">
+<h4>yamllint によるチェックを CI に組み込む</h4>
+<p>実際、筆者は yamllint を直接実行することはほぼなく、CI の中か tox (molecule) 経由で実行することがほとんどです。
+おすすめは role のテストも実装し molecule を使う方法ですが、すぐには難しい場合は先にあげた例のように
+tox.ini の commands に列挙されている一部に yamllint . 行を例えば追加し、tox 経由で実行するのが良いでしょう。</p>
+<p>tox 経由で実行されるようにしてあればあとは意識することなく CI または tox 実行で一緒に実行されるようにできます。</p>
+</div>
+</div>
+<div class="section" id="ansible-lint">
+<h3>Ansible Lint を使ってみよう</h3>
+<p>予定していたのと異なり申し訳ないですが、当初の見込みよりも yamllint だけで結構な量になってしまったので明日以降にします。</p>
+</div>
+</div>
+<div class="section" id="id11">
+<h2>次回予告</h2>
+<p>次回は今日の続きで実際に Ansible Lint をどう使っていくのか実例を示しながら簡単に紹介する予定です。</p>
+<!-- vim:sw=2:ts=2:et: -->
+</div>
+</div>
+	</div>
+		<footer>
+		  <p>Powered by <a href="http://getpelican.com/">Pelican</a>. Theme based on <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a>.</p>
+		  <p>&copy; Satoru SATOH</p>
+		</footer>
+	  </div>
+
+	</div>
+</body>
+</html>
