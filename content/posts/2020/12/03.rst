@@ -245,7 +245,7 @@ yamllint の設定ファイル .yamllint で対象ファイルによらずグロ
   (py36) [ssato@x1-carbon-gen6 03]$
 
 なおこの設定ファイルによる設定方法は、すべての対象ファイルについてルールを緩和、無効化することとなり、やや乱暴な方法ではあります。
-そういうわけで、筆者は基本的にはこの方法はおすすめしていません [#]_ 。
+そういうわけで、筆者は基本的にはこの方法はおすすめしていません。
 
 次に対象のファイル毎に設定する例ですが次のようにして対応できます。
 
@@ -269,7 +269,42 @@ yamllint の設定ファイル .yamllint で対象ファイルによらずグロ
   (py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.config_by_comments
   (py36) [ssato@x1-carbon-gen6 03]$
 
-.. [#] なお巷では警告が消えたという結果だけをもって短絡的にこの方法をとっている場合もなくはないようですが、自分が何をしているか、なぜそうしなければならないか理由をよく考え、明確にした上でそうすることをおすすめします。
+yamllint の設定でより厳密にチェック
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+標準ルールの標準設定でもある程度十分とはいえるのですがあくまでもこれは
+YAML ファイルをチェックするもので Ansible に最適化されているわけではありません。
+実際的にするためにはいくつか設定を調整してより厳密なチェックを行うようにすると良いでしょう。
+
+よくある Ansible のコード規約の観点で有効な .yamllint の設定例をいくつかあげておきます [#]_ 。
+
+.. code-block:: yaml
+
+  ---
+  extends: default
+  rules:
+    braces:
+      forbid: true
+
+    brackets:
+      forbid: true
+
+    new-line-at-end-of-file: enable  # ファイル末尾に \n 必須
+
+    new-lines:
+      type: unix  # Unix  style (\n のみ) で改行
+
+    octal-values:
+      forbid-implicit-octal: true  # 下とあわせて Octal は必ず 0o... 書式で
+      forbid-explicit-octal: false
+
+    quoted-strings:
+      quote-type: double
+      required: only-when-needed
+
+[https://github.com/ssato/yamllint-configuration-examples/blob/main/conf.d/yamllint.ansible-typical]
+
+.. [#] これは自慢ですが {braces,brackets}.forbid ルールは筆者が機能追加しました: https://github.com/adrienverge/yamllint/pull/319
 
 yamllint によるチェックを CI に組み込む
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
