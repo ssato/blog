@@ -278,7 +278,7 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
 </pre></div>
 <p>なおこの設定ファイルによる設定方法は、すべての対象ファイルについてルールを緩和、無効化することとなり、やや乱暴な方法ではあります。
-そういうわけで、筆者は基本的にはこの方法はおすすめしていません <a class="footnote-reference" href="#id10" id="id9">[3]</a> 。</p>
+そういうわけで、筆者は基本的にはこの方法はおすすめしていません。</p>
 <p>次に対象のファイル毎に設定する例ですが次のようにして対応できます。</p>
 <div class="highlight"><pre><span></span><span class="go">(py36) [ssato@x1-carbon-gen6 03]$ rm .yamllint</span>
 <span class="go">(py36) [ssato@x1-carbon-gen6 03]$ cp 00_ping.yml.save   00_ping.yml.config_by_comments</span>
@@ -298,10 +298,40 @@ YAML ファイルすべてを再帰的に読込み <a class="footnote-reference"
 <span class="go">(py36) [ssato@x1-carbon-gen6 03]$ yamllint 00_ping.yml.config_by_comments</span>
 <span class="go">(py36) [ssato@x1-carbon-gen6 03]$</span>
 </pre></div>
-<table class="docutils footnote" frame="void" id="id10" rules="none">
+</div>
+<div class="section" id="id9">
+<h4>yamllint の設定でより厳密にチェック</h4>
+<p>標準ルールの標準設定でもある程度十分とはいえるのですがあくまでもこれは
+YAML ファイルをチェックするもので Ansible に最適化されているわけではありません。
+実際的にするためにはいくつか設定を調整してより厳密なチェックを行うようにすると良いでしょう。</p>
+<p>よくある Ansible のコード規約の観点で有効な .yamllint の設定例をいくつかあげておきます <a class="footnote-reference" href="#id11" id="id10">[3]</a> 。</p>
+<div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="nt">extends</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">default</span>
+<span class="nt">rules</span><span class="p">:</span>
+  <span class="nt">braces</span><span class="p">:</span>
+    <span class="nt">forbid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+
+  <span class="nt">brackets</span><span class="p">:</span>
+    <span class="nt">forbid</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+
+  <span class="nt">new-line-at-end-of-file</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">enable</span>  <span class="c1"># ファイル末尾に \n 必須</span>
+
+  <span class="nt">new-lines</span><span class="p">:</span>
+    <span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">unix</span>  <span class="c1"># Unix  style (\n のみ) で改行</span>
+
+  <span class="nt">octal-values</span><span class="p">:</span>
+    <span class="nt">forbid-implicit-octal</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>  <span class="c1"># 下とあわせて Octal は必ず 0o... 書式で</span>
+    <span class="nt">forbid-explicit-octal</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">false</span>
+
+  <span class="nt">quoted-strings</span><span class="p">:</span>
+    <span class="nt">quote-type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">double</span>
+    <span class="nt">required</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">only-when-needed</span>
+</pre></div>
+<p>[<a class="reference external" href="https://github.com/ssato/yamllint-configuration-examples/blob/main/conf.d/yamllint.ansible-typical">https://github.com/ssato/yamllint-configuration-examples/blob/main/conf.d/yamllint.ansible-typical</a>]</p>
+<table class="docutils footnote" frame="void" id="id11" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id9">[3]</a></td><td>なお巷では警告が消えたという結果だけをもって短絡的にこの方法をとっている場合もなくはないようですが、自分が何をしているか、なぜそうしなければならないか理由をよく考え、明確にした上でそうすることをおすすめします。</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id10">[3]</a></td><td>これは自慢ですが {braces,brackets}.forbid ルールは筆者が機能追加しました: <a class="reference external" href="https://github.com/adrienverge/yamllint/pull/319">https://github.com/adrienverge/yamllint/pull/319</a></td></tr>
 </tbody>
 </table>
 </div>
@@ -318,7 +348,7 @@ tox.ini の commands に列挙されている一部に yamllint . 行を例え�
 <p>予定していたのと異なり申し訳ないですが、当初の見込みよりも yamllint だけで結構な量になってしまったので明日以降にします。</p>
 </div>
 </div>
-<div class="section" id="id11">
+<div class="section" id="id12">
 <h2>次回予告</h2>
 <p>次回は今日の続きで実際に Ansible Lint をどう使っていくのか実例を示しながら簡単に紹介する予定です。</p>
 <!-- vim:sw=2:ts=2:et: -->
