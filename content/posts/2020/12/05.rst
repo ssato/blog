@@ -19,11 +19,11 @@ What's this?
 - https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
 - https://adventar.org/calendars/5719
 
-Lint を使ってみよう
-=====================
+Ansible-lint を拡張してみよう
+==================================
 
 `前回記事 <{filename}04.rst>`_ までではごく普通の yamllint や Ansible-Lint の使い方について紹介しました。
-それらをふまえつつ、本記事では Ansible-lint の拡張方法について簡単にふれようと思います。
+それらをふまえつつ、本記事では Ansible-lint の拡張方法 (カスタムルールの追加) について簡単にふれようと思います。
 
 なお拡張の実装は Python のコーディングが必要になります。
 本記事ではある程度の Python のコーディングの知見をお持ちであることを想定させて頂きます。
