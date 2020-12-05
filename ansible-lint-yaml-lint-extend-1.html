@@ -72,13 +72,13 @@ tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a hre
 <li><a class="reference external" href="https://adventar.org/calendars/5719">https://adventar.org/calendars/5719</a></li>
 </ul>
 </div>
-<div class="section" id="lint">
-<h2>Lint を使ってみよう</h2>
+<div class="section" id="ansible-lint">
+<h2>Ansible-lint を拡張してみよう</h2>
 <p><a class="reference external" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage-2.html">前回記事</a> までではごく普通の yamllint や Ansible-Lint の使い方について紹介しました。
-それらをふまえつつ、本記事では Ansible-lint の拡張方法について簡単にふれようと思います。</p>
+それらをふまえつつ、本記事では Ansible-lint の拡張方法 (カスタムルールの追加) について簡単にふれようと思います。</p>
 <p>なお拡張の実装は Python のコーディングが必要になります。
 本記事ではある程度の Python のコーディングの知見をお持ちであることを想定させて頂きます。</p>
-<div class="section" id="ansible-lint">
+<div class="section" id="id2">
 <h3>Ansible-lint ルールの実装を見てみる</h3>
 <p>カスタムルールを実装する前に既存のルールを見てみましょう。</p>
 <p>前回記事でふれたように Ansible-lint の default ルールは
@@ -233,7 +233,7 @@ tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a hre
 <div class="section" id="ansible-lint-class-matchmatchplaymatchtask">
 <h3>Ansible-lint ルール class の match、matchplay、matchtask メソッド</h3>
 <p>Ansible-lint ルール class の match、matchplay、matchtask メソッドをより詳細に調べてみましょう。</p>
-<p>前準備として次のようにして DebugRule.py <a class="footnote-reference" href="#id3" id="id2">[1]</a> を .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/ に用意します。
+<p>前準備として次のようにして DebugRule.py <a class="footnote-reference" href="#id4" id="id3">[1]</a> を .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/ に用意します。
 そして同じディレクトリ内に空の __init__.py も作成しておきます。
 そうするとこの新しいカスタムルール (ID: Custom_2020_99) が自動的に default ルールに加えて認識されるようになるはずです。</p>
 <div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ curl -L https://github.com/ssato/ansible-lint-custom-rules/raw/master/rules/DebugRule.py --create-dirs -o .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py</span>
@@ -299,14 +299,14 @@ match、matchplay、matchtask メソッドに渡されている引数を出力�
 <span class="go">└────────────────────────────────────────────────────────────────────────────┘</span>
 <span class="go">(py36) [ssato@localhost 04]$</span>
 </pre></div>
-<table class="docutils footnote" frame="void" id="id3" rules="none">
+<table class="docutils footnote" frame="void" id="id4" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#id2">[1]</a></td><td><a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py">https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py</a></td></tr>
+<tr><td class="label"><a class="fn-backref" href="#id3">[1]</a></td><td><a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py">https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py</a></td></tr>
 </tbody>
 </table>
 </div>
-<div class="section" id="id4">
+<div class="section" id="id5">
 <h3>Ansible-lint ルールの実装方法</h3>
 <p>Ansible-lint のカスタムルールは今まで見てきた次の三つのパターンのいずれかで実装できます。</p>
 <ul class="simple">
@@ -352,7 +352,7 @@ match、matchplay、matchtask メソッドに渡されている引数を出力�
 <li><a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/rules/">https://github.com/ssato/ansible-lint-custom-rules/rules/</a></li>
 </ul>
 </div>
-<div class="section" id="id5">
+<div class="section" id="id6">
 <h3>Ansible-lint ルールのパッケージ方法</h3>
 <p>先に説明したように Ansible-lint のカスタムルールは
 &lt;python のモジュールパス&gt;/ansiblelint/rules/custom/ 以下に固有のサブディレクトリを用意、その中に配置しておくと自動的に認識されます。</p>
