@@ -40,7 +40,7 @@ Ansible-lint ルールの実装を見てみる
 
 .. code-block:: console
 
-  (py36) [ssato@x1-carbon-gen6 04]$ ls .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/
+  (py36) [ssato@localhost 04]$ ls .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/
   AlwaysRunRule.py                   IncludeMissingFileRule.py      NoFormattingInWhenRule.py  TaskNoLocalAction.py
   BecomeUserWithoutBecomeRule.py     LineTooLongRule.py             NoTabsRule.py              TrailingWhitespaceRule.py
   CommandHasChangesCheckRule.py      LoadingFailureRule.py          OctalPermissionsRule.py    UseCommandInsteadOfShellRule.py
@@ -51,7 +51,7 @@ Ansible-lint ルールの実装を見てみる
   DeprecatedModuleRule.py            MetaVideoLinksRule.py          ShellWithoutPipefail.py    __pycache__
   EnvVarsInCommandRule.py            MissingFilePermissionsRule.py  SudoRule.py                custom
   GitHasVersionRule.py               NestedJinjaRule.py             TaskHasNameRule.py
-  (py36) [ssato@x1-carbon-gen6 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/AlwaysRunRule.py
+  (py36) [ssato@localhost 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/AlwaysRunRule.py
 
   from ansiblelint.rules import AnsibleLintRule
 
@@ -83,7 +83,7 @@ AlwaysRunRule は公式文書では次のルールに対応し、2.2 以降利�
 
 .. code-block:: console
 
-  (py36) [ssato@x1-carbon-gen6 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/SudoRule.py
+  (py36) [ssato@localhost 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/SudoRule.py
   from ansiblelint.rules import AnsibleLintRule
 
 
@@ -120,7 +120,7 @@ AlwaysRunRule は公式文書では次のルールに対応し、2.2 以降利�
 
       def matchplay(self, file, play):
           return self._check_value(play)
-  (py36) [ssato@x1-carbon-gen6 04]$
+  (py36) [ssato@localhost 04]$
 
 SudoRule は公式文書では次のルールに対応し、利用が非推奨の sudo が指定されているかどうか確認します。
 
@@ -143,7 +143,7 @@ SudoRule は公式文書では次のルールに対応し、利用が非推奨�
 
 .. code-block:: console
 
-  (py36) [ssato@x1-carbon-gen6 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/PlaybookExtension.py
+  (py36) [ssato@localhost 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/PlaybookExtension.py
 
   import os
   from typing import List
@@ -170,7 +170,7 @@ SudoRule は公式文書では次のルールに対応し、利用が非推奨�
               self.done.append(path)
               return True
           return False
-  (py36) [ssato@x1-carbon-gen6 04]$
+  (py36) [ssato@localhost 04]$
 
 PlaybookExtension は公式文書では次のルールに対応し、playbook ファイルの拡張子が .yml または .yaml であることを確認します。
 
@@ -198,20 +198,20 @@ Ansible-lint ルール class の match、matchplay、matchtask メソッドを�
 
 .. code-block:: console
 
-  (py36) [ssato@x1-carbon-gen6 04]$ curl -L https://github.com/ssato/ansible-lint-custom-rules/raw/master/rules/DebugRule.py --create-dirs -o .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py
+  (py36) [ssato@localhost 04]$ curl -L https://github.com/ssato/ansible-lint-custom-rules/raw/master/rules/DebugRule.py --create-dirs -o .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py
     % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                    Dload  Upload   Total   Spent    Left  Speed
   100   157  100   157    0     0    402      0 --:--:-- --:--:-- --:--:--   401
   100  3290  100  3290    0     0   4112      0 --:--:-- --:--:-- --:--:--  4112
-  (py36) [ssato@x1-carbon-gen6 04]$ touch .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/__init__.py
-  (py36) [ssato@x1-carbon-gen6 04]$ grep -i id .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py
+  (py36) [ssato@localhost 04]$ touch .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/__init__.py
+  (py36) [ssato@localhost 04]$ grep -i id .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py
   # SPDX-License-Identifier: MIT
   _RULE_ID: str = "Custom_2020_99"
   _ENVVAR_PREFIX: str = "_ANSIBLE_LINT_RULE_" + _RULE_ID.upper()
       id = _RULE_ID
-  (py36) [ssato@x1-carbon-gen6 04]$ ansible-lint -L | grep Custom_
+  (py36) [ssato@localhost 04]$ ansible-lint -L | grep Custom_
     Custom_2020_99   │ Custom rule class for debug use
-  (py36) [ssato@x1-carbon-gen6 04]$
+  (py36) [ssato@localhost 04]$
 
 このカスタムルールは環境変数 _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG に何か
 true として評価される文字列を指定ておくと有効化され、実装されているチェックが実行されます。
@@ -222,7 +222,7 @@ match、matchplay、matchtask メソッドに渡されている引数を出力�
 
 .. code-block:: console
 
-  (py36) [ssato@x1-carbon-gen6 04]$ _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG=1 ansible-lint 40_ping.yml
+  (py36) [ssato@localhost 04]$ _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG=1 ansible-lint 40_ping.yml
   WARNING  Listing 8 violation(s) that are fatal
   [Custom_2020_99] file: {'path': '40_ping.yml', 'type': 'playbook', 'absolute_directory': ''}, text: '---'
   40_ping.yml:1
@@ -263,7 +263,7 @@ match、matchplay、matchtask メソッドに渡されている引数を出力�
   │ warn_list:  # or 'skip_list' to silence them completely                    │
   │   - 'Custom_2020_99'  # Custom rule class for debug use                    │
   └────────────────────────────────────────────────────────────────────────────┘
-  (py36) [ssato@x1-carbon-gen6 04]$
+  (py36) [ssato@localhost 04]$
 
 .. [#] https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py
 
