@@ -1,0 +1,326 @@
+Ansible Lint と yamllint の話 - 拡張編 (1)
+##############################################
+
+:date: 2020-12-05 20:07
+:modified: 2020-12-05 20:08
+:tags: ansible, lint
+:category: ansible
+:slug: ansible-lint-yaml-lint-extend-1
+:authors: Satoru SATOH
+:summary: Ansible Lint と yamllint の話 - 拡張編 (1)
+:status: published
+
+What's this?
+=============
+
+これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。
+
+- https://qiita.com/advent-calendar/2020/ansible_01 (Qiita のみ)
+- https://adventar.org/calendars/5719
+
+Lint を使ってみよう
+=====================
+
+`前回記事 <{filename}04.rst>`_ までではごく普通の yamllint や Ansible-Lint の使い方について紹介しました。
+それらをふまえつつ、本記事では Ansible-lint の拡張方法について簡単にふれようと思います。
+
+なお拡張の実装は Python のコーディングが必要になります。
+本記事ではある程度の Python のコーディングの知見をお持ちであることを想定させて頂きます。
+
+Ansible-lint ルールの実装を見てみる
+-------------------------------------
+
+カスタムルールを実装する前に既存のルールを見てみましょう。
+
+前回記事でふれたように Ansible-lint の default ルールは
+<python のモジュールパス>/ansiblelint/rules/ 内にあり個々の .py ファイルが一つのルールを実装しています。
+
+最初に default ルールの一つ AlwaysRunRule.py を見てみましょう。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 04]$ ls .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/
+  AlwaysRunRule.py                   IncludeMissingFileRule.py      NoFormattingInWhenRule.py  TaskNoLocalAction.py
+  BecomeUserWithoutBecomeRule.py     LineTooLongRule.py             NoTabsRule.py              TrailingWhitespaceRule.py
+  CommandHasChangesCheckRule.py      LoadingFailureRule.py          OctalPermissionsRule.py    UseCommandInsteadOfShellRule.py
+  CommandsInsteadOfArgumentsRule.py  MercurialHasRevisionRule.py    PackageIsNotLatestRule.py  UseHandlerRatherThanWhenChangedRule.py
+  CommandsInsteadOfModulesRule.py    MetaChangeFromDefaultRule.py   PlaybookExtension.py       UsingBareVariablesIsDeprecatedRule.py
+  ComparisonToEmptyStringRule.py     MetaMainHasInfoRule.py         RoleNames.py               VariableHasSpacesRule.py
+  ComparisonToLiteralBoolRule.py     MetaTagValidRule.py            RoleRelativePath.py        __init__.py
+  DeprecatedModuleRule.py            MetaVideoLinksRule.py          ShellWithoutPipefail.py    __pycache__
+  EnvVarsInCommandRule.py            MissingFilePermissionsRule.py  SudoRule.py                custom
+  GitHasVersionRule.py               NestedJinjaRule.py             TaskHasNameRule.py
+  (py36) [ssato@x1-carbon-gen6 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/AlwaysRunRule.py
+
+  from ansiblelint.rules import AnsibleLintRule
+
+
+  class AlwaysRunRule(AnsibleLintRule):
+      id = '101'
+      shortdesc = 'Deprecated always_run'
+      description = 'Instead of ``always_run``, use ``check_mode``'
+      severity = 'MEDIUM'
+      tags = ['deprecated', 'ANSIBLE0018']
+      version_added = 'historic'
+
+      def matchtask(self, file, task):
+          return 'always_run' in task
+
+AlwaysRunRule は公式文書では次のルールに対応し、2.2 以降利用が非推奨の always_run が指定されているかどうか確認します。
+
+- https://ansible-lint.readthedocs.io/en/latest/default_rules.html#deprecated-always-run
+
+実装はおおよそ次のようになっていることがわかります。
+
+- ansiblelint.rules.AnsibleLintRule を継承した class 定義 AlwaysRunRule が一つ含まれている
+- class AlwaysRunRule は id、shortdesc、description、severity、tags などのメンバーを持つ
+- class AlwaysRunRule は何か受け取ったデータ task を確認した結果を返す matchtask メソッドを持つ
+
+  - matchtask メソッドは task に always_run が含まれる場合 True を返す
+
+もう一つ他のルールも見てみましょう。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/SudoRule.py
+  from ansiblelint.rules import AnsibleLintRule
+
+
+  class SudoRule(AnsibleLintRule):
+      id = '103'
+      shortdesc = 'Deprecated sudo'
+      description = 'Instead of ``sudo``/``sudo_user``, use ``become``/``become_user``.'
+      severity = 'VERY_HIGH'
+      tags = ['deprecated', 'ANSIBLE0008']
+      version_added = 'historic'
+
+      def _check_value(self, play_frag):
+          results = []
+
+          if isinstance(play_frag, dict):
+              if 'sudo' in play_frag:
+                  results.append(({'sudo': play_frag['sudo']},
+                                  'Deprecated sudo feature', play_frag['__line__']))
+              if 'sudo_user' in play_frag:
+                  results.append(({'sudo_user': play_frag['sudo_user']},
+                                  'Deprecated sudo_user feature', play_frag['__line__']))
+              if 'tasks' in play_frag:
+                  output = self._check_value(play_frag['tasks'])
+                  if output:
+                      results += output
+
+          if isinstance(play_frag, list):
+              for item in play_frag:
+                  output = self._check_value(item)
+                  if output:
+                      results += output
+
+          return results
+
+      def matchplay(self, file, play):
+          return self._check_value(play)
+  (py36) [ssato@x1-carbon-gen6 04]$
+
+SudoRule は公式文書では次のルールに対応し、利用が非推奨の sudo が指定されているかどうか確認します。
+
+- https://ansible-lint.readthedocs.io/en/latest/default_rules.html#deprecated-sudo
+
+実装は AlwaysRunRule より少し複雑ですがおおよそ次のようになっていることがわかります。
+
+- ansiblelint.rules.AnsibleLintRule を継承した class 定義 SudoRule が一つ含まれている
+- class SudoRule は先の AlwaysRunRule と同様のメンバーを持つ
+- class SudoRule は何か受け取ったデータ play について確認した結果を返す matchplay メソッドを持つ
+
+  - play が辞書の場合:
+
+    - sudo、sudo_user が含まれる場合、そのコンテキストの情報を含む辞書、メッセージなどをタプルで返す
+    - play の中に tasks が含まれる場合、tasks の中について再帰的にさらにチェック
+
+  - play がリストの場合: その中の各項目について再帰的にさらにチェック
+
+さらにもう一つ他のルールも見てみましょう。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 04]$ grep -vE '^#' .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/PlaybookExtension.py
+
+  import os
+  from typing import List
+
+  from ansiblelint.rules import AnsibleLintRule
+
+
+  class PlaybookExtension(AnsibleLintRule):
+      id = '205'
+      shortdesc = 'Use ".yml" or ".yaml" playbook extension'
+      description = 'Playbooks should have the ".yml" or ".yaml" extension'
+      severity = 'MEDIUM'
+      tags = ['formatting']
+      done = []  # type: List  # already noticed path list
+      version_added = 'v4.0.0'
+
+      def match(self, file, text):
+          if file['type'] != 'playbook':
+              return False
+
+          path = file['path']
+          ext = os.path.splitext(path)
+          if ext[1] not in ['.yml', '.yaml'] and path not in self.done:
+              self.done.append(path)
+              return True
+          return False
+  (py36) [ssato@x1-carbon-gen6 04]$
+
+PlaybookExtension は公式文書では次のルールに対応し、playbook ファイルの拡張子が .yml または .yaml であることを確認します。
+
+- https://ansible-lint.readthedocs.io/en/latest/default_rules.html#use-yml-or-yaml-playbook-extension
+
+実装はおおよそ次のようになっていることがわかります。
+
+- ansiblelint.rules.AnsibleLintRule を継承した class 定義 PlaybookExtension が一つ含まれている
+- class PlaybookExtension は先の AlwaysRunRule や SudoRule と同様のメンバーを持つ
+- class PlaybookExtension は受け取ったデータ file (辞書) について確認した結果を返す match メソッドを持つ
+
+  - file['type'] が 'playbook' の場合:
+
+    - file['path'] に確認中のファイルのパス情報が含まれるもよう
+    - ファイルのパス情報から拡張子を抽出し、.yml か .yaml になっていない場合に True を返す
+
+Ansible-lint ルール class の match、matchplay、matchtask メソッド
+--------------------------------------------------------------------
+
+Ansible-lint ルール class の match、matchplay、matchtask メソッドをより詳細に調べてみましょう。
+
+前準備として次のようにして DebugRule.py [#]_ を .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/ に用意します。
+そして同じディレクトリ内に空の __init__.py も作成しておきます。
+そうするとこの新しいカスタムルール (ID: Custom_2020_99) が自動的に default ルールに加えて認識されるようになるはずです。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 04]$ curl -L https://github.com/ssato/ansible-lint-custom-rules/raw/master/rules/DebugRule.py --create-dirs -o .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py
+    % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                   Dload  Upload   Total   Spent    Left  Speed
+  100   157  100   157    0     0    402      0 --:--:-- --:--:-- --:--:--   401
+  100  3290  100  3290    0     0   4112      0 --:--:-- --:--:-- --:--:--  4112
+  (py36) [ssato@x1-carbon-gen6 04]$ touch .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/__init__.py
+  (py36) [ssato@x1-carbon-gen6 04]$ grep -i id .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py
+  # SPDX-License-Identifier: MIT
+  _RULE_ID: str = "Custom_2020_99"
+  _ENVVAR_PREFIX: str = "_ANSIBLE_LINT_RULE_" + _RULE_ID.upper()
+      id = _RULE_ID
+  (py36) [ssato@x1-carbon-gen6 04]$ ansible-lint -L | grep Custom_
+    Custom_2020_99   │ Custom rule class for debug use
+  (py36) [ssato@x1-carbon-gen6 04]$
+
+このカスタムルールは環境変数 _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG に何か
+true として評価される文字列を指定ておくと有効化され、実装されているチェックが実行されます。
+このカスタムルールを使うと ansible-lint ルール class の
+match、matchplay、matchtask メソッドに渡されている引数を出力して見てみることができます。
+
+前回記事で利用した Ansible Playbook で試してみましょう。
+
+.. code-block:: console
+
+  (py36) [ssato@x1-carbon-gen6 04]$ _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG=1 ansible-lint 40_ping.yml
+  WARNING  Listing 8 violation(s) that are fatal
+  [Custom_2020_99] file: {'path': '40_ping.yml', 'type': 'playbook', 'absolute_directory': ''}, text: '---'
+  40_ping.yml:1
+  ---
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/debug.yml', 'type': 'tasks'}, text: '---'
+  roles/do_ping/tasks/debug.yml:1
+  ---
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/main.yml', 'type': 'tasks'}, text: '---'
+  roles/do_ping/tasks/main.yml:1
+  ---
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'type': 'tasks'}, text: '---'
+  roles/do_ping/tasks/ping.yml:1
+  ---
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'type': 'tasks'}, play: AnsibleMapping([('name', 'Run ping module'), ('ping', None), ('__line__', 2), ('__file__', '/tmp/0/04/roles/do_ping/tasks/ping.yml'), ('skipped_rules', [])])
+  roles/do_ping/tasks/ping.yml:2
+  ping.yml
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'type': 'tasks'}, task: {'delegate_to': <class 'ansible.utils.sentinel.Sentinel'>, 'name': 'Run ping module', '__line__': 2, '__file__': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'skipped_rules': [], 'action': {'__ansible_module__': 'ping', '__ansible_arguments__': []}, '__ansible_action_type__': 'task'}
+  roles/do_ping/tasks/ping.yml:2
+  Task/Handler: Run ping module
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'type': 'tasks'}, play: AnsibleMapping([('name', 'Run ping command'), ('command', 'ping -c 3 {{ inventory_hostname }}'), ('changed_when', False), ('__line__', 5), ('__file__', '/tmp/0/04/roles/do_ping/tasks/ping.yml'), ('skipped_rules', [])])
+  roles/do_ping/tasks/ping.yml:5
+  ping.yml
+
+  [Custom_2020_99] file: {'path': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'type': 'tasks'}, task: {'delegate_to': <class 'ansible.utils.sentinel.Sentinel'>, 'name': 'Run ping command', 'changed_when': False, '__line__': 5, '__file__': '/tmp/0/04/roles/do_ping/tasks/ping.yml', 'skipped_rules': [], 'action': {'__ansible_module__': 'command', '__ansible_arguments__': ['ping', '-c', '3', '{{', 'inventory_hostname', '}}']}, '__ansible_action_type__': 'task'}
+  roles/do_ping/tasks/ping.yml:5
+  Task/Handler: Run ping command
+
+  You can skip specific rules or tags by adding them to your configuration file:
+
+  ┌────────────────────────────────────────────────────────────────────────────┐
+  │ # .ansible-lint                                                            │
+  │ warn_list:  # or 'skip_list' to silence them completely                    │
+  │   - 'Custom_2020_99'  # Custom rule class for debug use                    │
+  └────────────────────────────────────────────────────────────────────────────┘
+  (py36) [ssato@x1-carbon-gen6 04]$
+
+.. [#] https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py
+
+Ansible-lint ルールの実装方法
+-------------------------------
+
+Ansible-lint のカスタムルールは今まで見てきた次の三つのパターンのいずれかで実装できます。
+
+- ansiblelint.rules.AnsibleLintRule を継承した class 定義を用意
+- class は先の AlwaysRunRule や SudoRule と同様のメンバーを持たせる
+- class には match、matchtask、matchplay メソッドを実装する
+
+  - match(self, file: dict, line: str) -> str:
+
+    - 対象が Playbook か Role の task 定義ファイルなどかによらず汎用に使える
+    - 引数:
+
+      - file: 確認対象ファイルの情報を持つ
+
+        - file['path']: ファイルのパス
+        - file['type']: ファイルの種別、meta、playbook、tasks
+
+      - line: ファイルの内容を一行ずつ読み込んで保持している
+
+  - matchtask(self, file: dict, task: dict) -> typing.Union[bool, str]:
+
+    - 対象が task の場合に使う
+    - 引数:
+
+      - file: match メソッドと同じ
+      - task: task 情報を持つ (先の DebugRule による出力例も参照のこと)
+
+  - matchplay(self, file: dict, play: dict) -> typing.Union[bool, str]:
+
+    - 対象が Playbook ファイルの Play (playbook の各 play または各 role) の場合に使う
+    - 引数:
+
+      - file: match メソッドと同じ
+      - play: name や配下の task 情報など Play の情報を持つ (先の DebugRule による出力例も参照のこと)
+
+具体的な実装例については default ルールや筆者が例として保守している次の例などをご参照下さい。
+
+- https://github.com/ssato/ansible-lint-custom-rules/rules/
+
+Ansible-lint ルールのパッケージ方法
+-------------------------------------
+
+先に説明したように Ansible-lint のカスタムルールは
+<python のモジュールパス>/ansiblelint/rules/custom/ 以下に固有のサブディレクトリを用意、その中に配置しておくと自動的に認識されます。
+
+先の DebugRule の例ではそのサブディレクトリやルール実装を手作業で用意しましたが、Ansible-lint
+ルールを普通の Python パッケージとしてその中に適切に配置されるようにすれば良いわけです。
+
+Ansible 固有というより Python の一般的なパッケージ化の方法の話となりますので、具体的な方法の説明は割愛させて頂きます。
+公式文書と実際のパッケージ化の例などをご参照下さい。
+
+- 公式文書の該当節: https://ansible-lint.readthedocs.io/en/latest/rules.html#packaging-custom-rules
+- パッケージ化例 (setup.cfg により、特に関連する箇所): https://github.com/ssato/ansible-lint-custom-rules/blob/master/setup.cfg#L41
+
+.. vim:sw=2:ts=2:et:
