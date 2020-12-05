@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>ssato's blog</title>
+	<meta name="description" content="">
+	<meta name="author" content="Satoru SATOH">
+
+	<!-- HTML5 shim, for IE6-8 support of HTML elements -->
+	<!--[if lt IE 9]>
+		<script src="https://ssato.github.io/blog/theme/html5.js"></script>
+	<![endif]-->
+
+	<!-- Styles -->
+	<link href="https://ssato.github.io/blog/theme/bootstrap.min.css" rel="stylesheet">
+	<link href="https://ssato.github.io/blog/theme/local.css" rel="stylesheet">
+	<link href="https://ssato.github.io/blog/theme/pygments.css" rel="stylesheet">
+
+	<!-- Feeds -->
+	<link href="https://ssato.github.io/blog/feeds/all.atom.xml" type="application/atom+xml" rel="alternate" title="ssato's blog Atom Feed" />
+
+
+
+
+</head>
+<body>
+	<div class="topbar">
+	  <div class="topbar-inner">
+		<div class="container-fluid">
+		  <a class="brand" href="https://ssato.github.io/blog/">ssato's blog</a>
+			<ul class="nav">
+					<li class="active"><a href="https://ssato.github.io/blog/category/ansible.html">ansible</a></li>
+					<li ><a href="https://ssato.github.io/blog/category/python.html">python</a></li>
+			</ul>
+			<p class="pull-right"><a href="https://ssato.github.io/blog/archives.html">[archives]</a> <a href="https://ssato.github.io/blog/tags.html">[tags]</a></p>
+		</div>
+	  </div>
+	</div>
+
+	<div class="container-fluid">
+	  <div class="sidebar">
+		<div class="well">
+			<h3>Blogroll</h3>
+			<ul>
+				<li><a href="http://getpelican.com/">Pelican</a></li>
+				<li><a href="http://python.org/">Python.org</a></li>
+				<li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+			</ul>
+			<div class="social">
+			<h3>Social</h3>
+			<ul>
+				<li><a href="https://github.com/ssato/">Github</a></li>
+				<li><a href="https://www.instagram.com/satoh.satoru/">Instagram</a></li>
+				<li><a href="https://twitter.com/satoru_satoh">Twitter</a></li>
+			</ul>
+			</div>
+		</div>
+	  </div>
+	  <div class="content">
+	<div class='article'>
+		<div class="page-header"><h1>Ansible Lint と yamllint の話 - 拡張編 (1)</h1></div>
+		<div class="well small">Permalink: <a class="more" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-extend-1.html">2020-12-05 20:07:00+09:00</a>
+by <a class="url fn" href="https://ssato.github.io/blog/author/satoru-satoh.html">Satoru SATOH </a>
+ in <a href="https://ssato.github.io/blog/category/ansible.html">ansible</a>
+tags: <a href="https://ssato.github.io/blog/tag/ansible.html">ansible</a> <a href="https://ssato.github.io/blog/tag/lint.html">lint</a> </div>
+		<div><div class="section" id="what-s-this">
+<h2>What's this?</h2>
+<p>これは次の Ansible Advent Calendar 2020 に参加して書いている記事となります。
+他の方の記事については下記のリンクからたどれますので是非あわせてご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://qiita.com/advent-calendar/2020/ansible_01">https://qiita.com/advent-calendar/2020/ansible_01</a> (Qiita のみ)</li>
+<li><a class="reference external" href="https://adventar.org/calendars/5719">https://adventar.org/calendars/5719</a></li>
+</ul>
+</div>
+<div class="section" id="lint">
+<h2>Lint を使ってみよう</h2>
+<p><a class="reference external" href="https://ssato.github.io/blog/ansible-lint-yaml-lint-usage-2.html">前回記事</a> までではごく普通の yamllint や Ansible-Lint の使い方について紹介しました。
+それらをふまえつつ、本記事では Ansible-lint の拡張方法について簡単にふれようと思います。</p>
+<p>なお拡張の実装は Python のコーディングが必要になります。
+本記事ではある程度の Python のコーディングの知見をお持ちであることを想定させて頂きます。</p>
+<div class="section" id="ansible-lint">
+<h3>Ansible-lint ルールの実装を見てみる</h3>
+<p>カスタムルールを実装する前に既存のルールを見てみましょう。</p>
+<p>前回記事でふれたように Ansible-lint の default ルールは
+&lt;python のモジュールパス&gt;/ansiblelint/rules/ 内にあり個々の .py ファイルが一つのルールを実装しています。</p>
+<p>最初に default ルールの一つ AlwaysRunRule.py を見てみましょう。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ ls .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/</span>
+<span class="go">AlwaysRunRule.py                   IncludeMissingFileRule.py      NoFormattingInWhenRule.py  TaskNoLocalAction.py</span>
+<span class="go">BecomeUserWithoutBecomeRule.py     LineTooLongRule.py             NoTabsRule.py              TrailingWhitespaceRule.py</span>
+<span class="go">CommandHasChangesCheckRule.py      LoadingFailureRule.py          OctalPermissionsRule.py    UseCommandInsteadOfShellRule.py</span>
+<span class="go">CommandsInsteadOfArgumentsRule.py  MercurialHasRevisionRule.py    PackageIsNotLatestRule.py  UseHandlerRatherThanWhenChangedRule.py</span>
+<span class="go">CommandsInsteadOfModulesRule.py    MetaChangeFromDefaultRule.py   PlaybookExtension.py       UsingBareVariablesIsDeprecatedRule.py</span>
+<span class="go">ComparisonToEmptyStringRule.py     MetaMainHasInfoRule.py         RoleNames.py               VariableHasSpacesRule.py</span>
+<span class="go">ComparisonToLiteralBoolRule.py     MetaTagValidRule.py            RoleRelativePath.py        __init__.py</span>
+<span class="go">DeprecatedModuleRule.py            MetaVideoLinksRule.py          ShellWithoutPipefail.py    __pycache__</span>
+<span class="go">EnvVarsInCommandRule.py            MissingFilePermissionsRule.py  SudoRule.py                custom</span>
+<span class="go">GitHasVersionRule.py               NestedJinjaRule.py             TaskHasNameRule.py</span>
+<span class="go">(py36) [ssato@localhost 04]$ grep -vE &#39;^#&#39; .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/AlwaysRunRule.py</span>
+
+<span class="go">from ansiblelint.rules import AnsibleLintRule</span>
+
+
+<span class="go">class AlwaysRunRule(AnsibleLintRule):</span>
+<span class="go">    id = &#39;101&#39;</span>
+<span class="go">    shortdesc = &#39;Deprecated always_run&#39;</span>
+<span class="go">    description = &#39;Instead of ``always_run``, use ``check_mode``&#39;</span>
+<span class="go">    severity = &#39;MEDIUM&#39;</span>
+<span class="go">    tags = [&#39;deprecated&#39;, &#39;ANSIBLE0018&#39;]</span>
+<span class="go">    version_added = &#39;historic&#39;</span>
+
+<span class="go">    def matchtask(self, file, task):</span>
+<span class="go">        return &#39;always_run&#39; in task</span>
+</pre></div>
+<p>AlwaysRunRule は公式文書では次のルールに対応し、2.2 以降利用が非推奨の always_run が指定されているかどうか確認します。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/default_rules.html#deprecated-always-run">https://ansible-lint.readthedocs.io/en/latest/default_rules.html#deprecated-always-run</a></li>
+</ul>
+<p>実装はおおよそ次のようになっていることがわかります。</p>
+<ul class="simple">
+<li>ansiblelint.rules.AnsibleLintRule を継承した class 定義 AlwaysRunRule が一つ含まれている</li>
+<li>class AlwaysRunRule は id、shortdesc、description、severity、tags などのメンバーを持つ</li>
+<li>class AlwaysRunRule は何か受け取ったデータ task を確認した結果を返す matchtask メソッドを持つ<ul>
+<li>matchtask メソッドは task に always_run が含まれる場合 True を返す</li>
+</ul>
+</li>
+</ul>
+<p>もう一つ他のルールも見てみましょう。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ grep -vE &#39;^#&#39; .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/SudoRule.py</span>
+<span class="go">from ansiblelint.rules import AnsibleLintRule</span>
+
+
+<span class="go">class SudoRule(AnsibleLintRule):</span>
+<span class="go">    id = &#39;103&#39;</span>
+<span class="go">    shortdesc = &#39;Deprecated sudo&#39;</span>
+<span class="go">    description = &#39;Instead of ``sudo``/``sudo_user``, use ``become``/``become_user``.&#39;</span>
+<span class="go">    severity = &#39;VERY_HIGH&#39;</span>
+<span class="go">    tags = [&#39;deprecated&#39;, &#39;ANSIBLE0008&#39;]</span>
+<span class="go">    version_added = &#39;historic&#39;</span>
+
+<span class="go">    def _check_value(self, play_frag):</span>
+<span class="go">        results = []</span>
+
+<span class="go">        if isinstance(play_frag, dict):</span>
+<span class="go">            if &#39;sudo&#39; in play_frag:</span>
+<span class="go">                results.append(({&#39;sudo&#39;: play_frag[&#39;sudo&#39;]},</span>
+<span class="go">                                &#39;Deprecated sudo feature&#39;, play_frag[&#39;__line__&#39;]))</span>
+<span class="go">            if &#39;sudo_user&#39; in play_frag:</span>
+<span class="go">                results.append(({&#39;sudo_user&#39;: play_frag[&#39;sudo_user&#39;]},</span>
+<span class="go">                                &#39;Deprecated sudo_user feature&#39;, play_frag[&#39;__line__&#39;]))</span>
+<span class="go">            if &#39;tasks&#39; in play_frag:</span>
+<span class="go">                output = self._check_value(play_frag[&#39;tasks&#39;])</span>
+<span class="go">                if output:</span>
+<span class="go">                    results += output</span>
+
+<span class="go">        if isinstance(play_frag, list):</span>
+<span class="go">            for item in play_frag:</span>
+<span class="go">                output = self._check_value(item)</span>
+<span class="go">                if output:</span>
+<span class="go">                    results += output</span>
+
+<span class="go">        return results</span>
+
+<span class="go">    def matchplay(self, file, play):</span>
+<span class="go">        return self._check_value(play)</span>
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<p>SudoRule は公式文書では次のルールに対応し、利用が非推奨の sudo が指定されているかどうか確認します。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/default_rules.html#deprecated-sudo">https://ansible-lint.readthedocs.io/en/latest/default_rules.html#deprecated-sudo</a></li>
+</ul>
+<p>実装は AlwaysRunRule より少し複雑ですがおおよそ次のようになっていることがわかります。</p>
+<ul class="simple">
+<li>ansiblelint.rules.AnsibleLintRule を継承した class 定義 SudoRule が一つ含まれている</li>
+<li>class SudoRule は先の AlwaysRunRule と同様のメンバーを持つ</li>
+<li>class SudoRule は何か受け取ったデータ play について確認した結果を返す matchplay メソッドを持つ<ul>
+<li>play が辞書の場合:<ul>
+<li>sudo、sudo_user が含まれる場合、そのコンテキストの情報を含む辞書、メッセージなどをタプルで返す</li>
+<li>play の中に tasks が含まれる場合、tasks の中について再帰的にさらにチェック</li>
+</ul>
+</li>
+<li>play がリストの場合: その中の各項目について再帰的にさらにチェック</li>
+</ul>
+</li>
+</ul>
+<p>さらにもう一つ他のルールも見てみましょう。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ grep -vE &#39;^#&#39; .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/PlaybookExtension.py</span>
+
+<span class="go">import os</span>
+<span class="go">from typing import List</span>
+
+<span class="go">from ansiblelint.rules import AnsibleLintRule</span>
+
+
+<span class="go">class PlaybookExtension(AnsibleLintRule):</span>
+<span class="go">    id = &#39;205&#39;</span>
+<span class="go">    shortdesc = &#39;Use &quot;.yml&quot; or &quot;.yaml&quot; playbook extension&#39;</span>
+<span class="go">    description = &#39;Playbooks should have the &quot;.yml&quot; or &quot;.yaml&quot; extension&#39;</span>
+<span class="go">    severity = &#39;MEDIUM&#39;</span>
+<span class="go">    tags = [&#39;formatting&#39;]</span>
+<span class="go">    done = []  # type: List  # already noticed path list</span>
+<span class="go">    version_added = &#39;v4.0.0&#39;</span>
+
+<span class="go">    def match(self, file, text):</span>
+<span class="go">        if file[&#39;type&#39;] != &#39;playbook&#39;:</span>
+<span class="go">            return False</span>
+
+<span class="go">        path = file[&#39;path&#39;]</span>
+<span class="go">        ext = os.path.splitext(path)</span>
+<span class="go">        if ext[1] not in [&#39;.yml&#39;, &#39;.yaml&#39;] and path not in self.done:</span>
+<span class="go">            self.done.append(path)</span>
+<span class="go">            return True</span>
+<span class="go">        return False</span>
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<p>PlaybookExtension は公式文書では次のルールに対応し、playbook ファイルの拡張子が .yml または .yaml であることを確認します。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/default_rules.html#use-yml-or-yaml-playbook-extension">https://ansible-lint.readthedocs.io/en/latest/default_rules.html#use-yml-or-yaml-playbook-extension</a></li>
+</ul>
+<p>実装はおおよそ次のようになっていることがわかります。</p>
+<ul class="simple">
+<li>ansiblelint.rules.AnsibleLintRule を継承した class 定義 PlaybookExtension が一つ含まれている</li>
+<li>class PlaybookExtension は先の AlwaysRunRule や SudoRule と同様のメンバーを持つ</li>
+<li>class PlaybookExtension は受け取ったデータ file (辞書) について確認した結果を返す match メソッドを持つ<ul>
+<li>file['type'] が 'playbook' の場合:<ul>
+<li>file['path'] に確認中のファイルのパス情報が含まれるもよう</li>
+<li>ファイルのパス情報から拡張子を抽出し、.yml か .yaml になっていない場合に True を返す</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="ansible-lint-class-matchmatchplaymatchtask">
+<h3>Ansible-lint ルール class の match、matchplay、matchtask メソッド</h3>
+<p>Ansible-lint ルール class の match、matchplay、matchtask メソッドをより詳細に調べてみましょう。</p>
+<p>前準備として次のようにして DebugRule.py <a class="footnote-reference" href="#id3" id="id2">[1]</a> を .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/ に用意します。
+そして同じディレクトリ内に空の __init__.py も作成しておきます。
+そうするとこの新しいカスタムルール (ID: Custom_2020_99) が自動的に default ルールに加えて認識されるようになるはずです。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ curl -L https://github.com/ssato/ansible-lint-custom-rules/raw/master/rules/DebugRule.py --create-dirs -o .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py</span>
+<span class="gp">  %</span> Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+<span class="go">                                 Dload  Upload   Total   Spent    Left  Speed</span>
+<span class="go">100   157  100   157    0     0    402      0 --:--:-- --:--:-- --:--:--   401</span>
+<span class="go">100  3290  100  3290    0     0   4112      0 --:--:-- --:--:-- --:--:--  4112</span>
+<span class="go">(py36) [ssato@localhost 04]$ touch .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/__init__.py</span>
+<span class="go">(py36) [ssato@localhost 04]$ grep -i id .tox/py36/lib/python3.6/site-packages/ansiblelint/rules/custom/ex/DebugRule.py</span>
+<span class="gp">#</span> SPDX-License-Identifier: MIT
+<span class="go">_RULE_ID: str = &quot;Custom_2020_99&quot;</span>
+<span class="go">_ENVVAR_PREFIX: str = &quot;_ANSIBLE_LINT_RULE_&quot; + _RULE_ID.upper()</span>
+<span class="go">    id = _RULE_ID</span>
+<span class="go">(py36) [ssato@localhost 04]$ ansible-lint -L | grep Custom_</span>
+<span class="go">  Custom_2020_99   │ Custom rule class for debug use</span>
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<p>このカスタムルールは環境変数 _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG に何か
+true として評価される文字列を指定ておくと有効化され、実装されているチェックが実行されます。
+このカスタムルールを使うと ansible-lint ルール class の
+match、matchplay、matchtask メソッドに渡されている引数を出力して見てみることができます。</p>
+<p>前回記事で利用した Ansible Playbook で試してみましょう。</p>
+<div class="highlight"><pre><span></span><span class="go">(py36) [ssato@localhost 04]$ _ANSIBLE_LINT_RULE_CUSTOM_2020_99_DEBUG=1 ansible-lint 40_ping.yml</span>
+<span class="go">WARNING  Listing 8 violation(s) that are fatal</span>
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;40_ping.yml&#39;, &#39;type&#39;: &#39;playbook&#39;, &#39;absolute_directory&#39;: &#39;&#39;}, text: &#39;---&#39;</span>
+<span class="go">40_ping.yml:1</span>
+<span class="go">---</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/debug.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, text: &#39;---&#39;</span>
+<span class="go">roles/do_ping/tasks/debug.yml:1</span>
+<span class="go">---</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/main.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, text: &#39;---&#39;</span>
+<span class="go">roles/do_ping/tasks/main.yml:1</span>
+<span class="go">---</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, text: &#39;---&#39;</span>
+<span class="go">roles/do_ping/tasks/ping.yml:1</span>
+<span class="go">---</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, play: AnsibleMapping([(&#39;name&#39;, &#39;Run ping module&#39;), (&#39;ping&#39;, None), (&#39;__line__&#39;, 2), (&#39;__file__&#39;, &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;), (&#39;skipped_rules&#39;, [])])</span>
+<span class="go">roles/do_ping/tasks/ping.yml:2</span>
+<span class="go">ping.yml</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, task: {&#39;delegate_to&#39;: &lt;class &#39;ansible.utils.sentinel.Sentinel&#39;&gt;, &#39;name&#39;: &#39;Run ping module&#39;, &#39;__line__&#39;: 2, &#39;__file__&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;skipped_rules&#39;: [], &#39;action&#39;: {&#39;__ansible_module__&#39;: &#39;ping&#39;, &#39;__ansible_arguments__&#39;: []}, &#39;__ansible_action_type__&#39;: &#39;task&#39;}</span>
+<span class="go">roles/do_ping/tasks/ping.yml:2</span>
+<span class="go">Task/Handler: Run ping module</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, play: AnsibleMapping([(&#39;name&#39;, &#39;Run ping command&#39;), (&#39;command&#39;, &#39;ping -c 3 {{ inventory_hostname }}&#39;), (&#39;changed_when&#39;, False), (&#39;__line__&#39;, 5), (&#39;__file__&#39;, &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;), (&#39;skipped_rules&#39;, [])])</span>
+<span class="go">roles/do_ping/tasks/ping.yml:5</span>
+<span class="go">ping.yml</span>
+
+<span class="go">[Custom_2020_99] file: {&#39;path&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;type&#39;: &#39;tasks&#39;}, task: {&#39;delegate_to&#39;: &lt;class &#39;ansible.utils.sentinel.Sentinel&#39;&gt;, &#39;name&#39;: &#39;Run ping command&#39;, &#39;changed_when&#39;: False, &#39;__line__&#39;: 5, &#39;__file__&#39;: &#39;/tmp/0/04/roles/do_ping/tasks/ping.yml&#39;, &#39;skipped_rules&#39;: [], &#39;action&#39;: {&#39;__ansible_module__&#39;: &#39;command&#39;, &#39;__ansible_arguments__&#39;: [&#39;ping&#39;, &#39;-c&#39;, &#39;3&#39;, &#39;{{&#39;, &#39;inventory_hostname&#39;, &#39;}}&#39;]}, &#39;__ansible_action_type__&#39;: &#39;task&#39;}</span>
+<span class="go">roles/do_ping/tasks/ping.yml:5</span>
+<span class="go">Task/Handler: Run ping command</span>
+
+<span class="go">You can skip specific rules or tags by adding them to your configuration file:</span>
+
+<span class="go">┌────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="go">│ # .ansible-lint                                                            │</span>
+<span class="go">│ warn_list:  # or &#39;skip_list&#39; to silence them completely                    │</span>
+<span class="go">│   - &#39;Custom_2020_99&#39;  # Custom rule class for debug use                    │</span>
+<span class="go">└────────────────────────────────────────────────────────────────────────────┘</span>
+<span class="go">(py36) [ssato@localhost 04]$</span>
+</pre></div>
+<table class="docutils footnote" frame="void" id="id3" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[1]</a></td><td><a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py">https://github.com/ssato/ansible-lint-custom-rules/blob/master/rules/DebugRule.py</a></td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id4">
+<h3>Ansible-lint ルールの実装方法</h3>
+<p>Ansible-lint のカスタムルールは今まで見てきた次の三つのパターンのいずれかで実装できます。</p>
+<ul class="simple">
+<li>ansiblelint.rules.AnsibleLintRule を継承した class 定義を用意</li>
+<li>class は先の AlwaysRunRule や SudoRule と同様のメンバーを持たせる</li>
+<li>class には match、matchtask、matchplay メソッドを実装する<ul>
+<li>match(self, file: dict, line: str) -&gt; str:<ul>
+<li>対象が Playbook か Role の task 定義ファイルなどかによらず汎用に使える</li>
+<li>引数:<ul>
+<li>file: 確認対象ファイルの情報を持つ<ul>
+<li>file['path']: ファイルのパス</li>
+<li>file['type']: ファイルの種別、meta、playbook、tasks</li>
+</ul>
+</li>
+<li>line: ファイルの内容を一行ずつ読み込んで保持している</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>matchtask(self, file: dict, task: dict) -&gt; typing.Union[bool, str]:<ul>
+<li>対象が task の場合に使う</li>
+<li>引数:<ul>
+<li>file: match メソッドと同じ</li>
+<li>task: task 情報を持つ (先の DebugRule による出力例も参照のこと)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>matchplay(self, file: dict, play: dict) -&gt; typing.Union[bool, str]:<ul>
+<li>対象が Playbook ファイルの Play (playbook の各 play または各 role) の場合に使う</li>
+<li>引数:<ul>
+<li>file: match メソッドと同じ</li>
+<li>play: name や配下の task 情報など Play の情報を持つ (先の DebugRule による出力例も参照のこと)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>具体的な実装例については default ルールや筆者が例として保守している次の例などをご参照下さい。</p>
+<ul class="simple">
+<li><a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/rules/">https://github.com/ssato/ansible-lint-custom-rules/rules/</a></li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h3>Ansible-lint ルールのパッケージ方法</h3>
+<p>先に説明したように Ansible-lint のカスタムルールは
+&lt;python のモジュールパス&gt;/ansiblelint/rules/custom/ 以下に固有のサブディレクトリを用意、その中に配置しておくと自動的に認識されます。</p>
+<p>先の DebugRule の例ではそのサブディレクトリやルール実装を手作業で用意しましたが、Ansible-lint
+ルールを普通の Python パッケージとしてその中に適切に配置されるようにすれば良いわけです。</p>
+<p>Ansible 固有というより Python の一般的なパッケージ化の方法の話となりますので、具体的な方法の説明は割愛させて頂きます。
+公式文書と実際のパッケージ化の例などをご参照下さい。</p>
+<ul class="simple">
+<li>公式文書の該当節: <a class="reference external" href="https://ansible-lint.readthedocs.io/en/latest/rules.html#packaging-custom-rules">https://ansible-lint.readthedocs.io/en/latest/rules.html#packaging-custom-rules</a></li>
+<li>パッケージ化例 (setup.cfg により、特に関連する箇所): <a class="reference external" href="https://github.com/ssato/ansible-lint-custom-rules/blob/master/setup.cfg#L41">https://github.com/ssato/ansible-lint-custom-rules/blob/master/setup.cfg#L41</a></li>
+</ul>
+<!-- vim:sw=2:ts=2:et: -->
+</div>
+</div>
+</div>
+	</div>
+		<footer>
+		  <p>Powered by <a href="http://getpelican.com/">Pelican</a>. Theme based on <a href="http://twitter.github.com/bootstrap/">Twitter Bootstrap</a>.</p>
+		  <p>&copy; Satoru SATOH</p>
+		</footer>
+	  </div>
+
+	</div>
+</body>
+</html>

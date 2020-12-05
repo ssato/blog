@@ -344,7 +344,7 @@ default の探索パスは使わず指定のルール探索パスだけを利用
 </div>
 <div class="section" id="id9">
 <h4>ansible-lint のルールの有効化・無効化</h4>
-<p>Ansible-lint は yamllint と違い、通常ルール側で何か特別な設定方法がないかぎりは細かな設定などはできず、無効化できるのみとなります。</p>
+<p>Ansible-lint は yamllint と違い、通常ルール側で何か特別な設定方法がないかぎり <a class="footnote-reference" href="#id11" id="id10">[3]</a> は細かな設定などはできず、無効化できるのみとなります。</p>
 <p>Ansible-lint のルールは各ルールにあらかじめ指定されているタグを使って適用するものを指定したり、除外
 したり、対象ファイルの中でコメントや task 定義の中の tags に
 skip_ansible_lint を指定してスキップ (その部分についてルールを適用しない = 無効化)
@@ -366,6 +366,12 @@ tags に skip_ansible_lint を指定するなどで対応しています。
 <p>yamllint の記事でもふれましたが default ルールには ansible 利用者の経験からくる知見に基づく根拠のあるものがつまっています。
 何か警告が出たら設定でとにかくそれを表示させなくするのではなく、まず修正を試みましょう。
 ほとんどの場合ルールによる警告などの指摘は正しく、無効化の必要はないはずです。</p>
+<table class="docutils footnote" frame="void" id="id11" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id10">[3]</a></td><td>各ルールは python のコードなので、その中で設定ファイルを読込み、細かな挙動を変えるといった独自の仕組みを実装することはできます。</td></tr>
+</tbody>
+</table>
 </div>
 <div class="section" id="ansible-lint-ci">
 <h4>ansible-lint によるチェックを CI に組み込む</h4>
@@ -380,7 +386,7 @@ tox.ini の commands に列挙されている一部に yamllint . 行を例え�
 </div>
 </div>
 </div>
-<div class="section" id="id10">
+<div class="section" id="id12">
 <h2>次回予告</h2>
 <p>次回の記事までは少し期間が空くかもしれませんが Ansible Lint のカスタムルール実装の方法とパッケージ化の実際について簡単な説明を予定しています。</p>
 <!-- vim:sw=2:ts=2:et: -->
