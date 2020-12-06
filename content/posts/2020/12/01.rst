@@ -1,13 +1,13 @@
-Ansible Lint と YAML Lint の話 (イントロダクション)
+Ansible Lint と yamllint の話 (イントロダクション)
 ######################################################
 
 :date: 2020-12-01 00:01
-:modified: 2020-12-01 00:01
+:modified: 2020-12-07 01:55
 :tags: ansible, lint
 :category: ansible
 :slug: ansible-lint-yaml-lint-intro
 :authors: Satoru SATOH
-:summary: Ansible Lint と YAML Lint の話 (イントロダクション)
+:summary: Ansible Lint と yamllint の話 (イントロダクション)
 :status: published
 
 What's this?
